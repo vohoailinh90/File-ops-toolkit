@@ -1,0 +1,28 @@
+# Mutation manifest — see scripts/mutation_check.py
+target: file_ops_toolkit/runner.py
+note: What a run copies, reports and refuses.
+mutations:
+- label: one folder is scanned once per row instead of once per folder
+  find: "            runnable.setdefault(folder_key(job.address), []).append(job)"
+  replace: "            runnable.setdefault(str(job.row), []).append(job)"
+  test: tests.test_fetch_core.RunnerTests.test_a_folder_shared_by_many_rows_is_scanned_once
+- label: the destination is scanned as a source
+  find: "        index = scan_folder(address, options.recursive, exclude=dest, cancel=cancel)"
+  replace: "        index = scan_folder(address, options.recursive, cancel=cancel)"
+  test: tests.test_fetch_core.RunnerTests.test_by_folder_layout_and_destination_inside_a_source_is_not_rescanned
+- label: by_folder layout copies flat
+  find: "    target = str(Path(dest) / safe_dir_name(display_name(address))) if options.layout == \"by_folder\" else dest"
+  replace: "    target = dest"
+  test: tests.test_fetch_core.RunnerTests.test_by_folder_layout_and_destination_inside_a_source_is_not_rescanned
+- label: a failed copy is reported as copied
+  find: "        result.status = \"error\"\n"
+  replace: "        result.status = \"copied\"\n"
+  test: tests.test_fetch_core.RunnerTests.test_one_failing_copy_is_reported_and_the_rest_continue
+- label: a cancelled run keeps copying the rest of the folder
+  find: "    for job in group:\n        if cancel.is_set():\n            return\n        finish(_run_row(job, index, target))"
+  replace: "    for job in group:\n        finish(_run_row(job, index, target))"
+  test: tests.test_fetch_core.RunnerTests.test_cancel_stops_inside_a_folder_and_keeps_what_was_done
+- label: an unknown layout is accepted
+  find: "    if options.layout not in LAYOUTS:\n        raise ValueError"
+  replace: "    if False:\n        raise ValueError"
+  test: tests.test_fetch_core.RunnerTests.test_job_run_reports_progress_and_final_state

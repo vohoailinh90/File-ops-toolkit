@@ -1,0 +1,202 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  --radius: 0.625rem;
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.145 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.145 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.145 0 0);
+  --primary: oklch(0.205 0 0);
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.97 0 0);
+  --secondary-foreground: oklch(0.205 0 0);
+  --muted: oklch(0.97 0 0);
+  --muted-foreground: oklch(0.556 0 0);
+  --accent: oklch(0.97 0 0);
+  --accent-foreground: oklch(0.205 0 0);
+  /*
+   * `--destructive` và `--success` cũng là **màu chữ**: badge "Hoàn thành" là
+   * chữ success trên nền success/15, banner lỗi là chữ destructive trên nền
+   * destructive/10. Giá trị gốc của shadcn (L 0.577) và bản cũ của success
+   * (L 0.6) chỉ đạt 4.0:1 và 3.1:1 ở đúng hai ca đó — axe bắt được ngay khi quét
+   * Dashboard/Tasks. Bản hiện tại đạt 5.0:1 và 4.9:1. Success đậm hơn một nấc so
+   * với L 0.5: dòng bảng đang hover (`bg-muted/50`) nằm dưới nền badge, và ở L 0.5
+   * badge "Hoàn thành" trên dòng đó chỉ còn 4.36:1 — giờ là 4.7:1. Dark mode giữ
+   * nguyên độ sáng vì màu sáng trên nền tối vốn đã dư.
+   */
+  --destructive: oklch(0.52 0.22 27);
+  --success: oklch(0.48 0.11 163);
+  /*
+   * Xanh "thành công" cho **mảng màu lớn** — ô tracker, cột biểu đồ, vòng tiến
+   * độ. Đậm tới mức đọc được làm chữ (L 0.5) thì phủ cả biểu đồ trông nặng nề;
+   * mảng màu chỉ cần ≥ 3:1 với nền card (WCAG 1.4.11), bản này đạt 3.7:1. Cùng
+   * cách Primer/Radix tách màu chữ khỏi màu nền đặc. Chữ thì vẫn `text-success`.
+   */
+  --success-fill: oklch(0.6 0.13 163);
+  /*
+   * Cảnh báo (vàng cam) chỉ dùng làm **mảng màu** — ô tracker, đoạn biểu đồ,
+   * chấm trạng thái — nên chỉ cần ≥ 3:1 với nền card (WCAG 1.4.11), đang đạt
+   * 3.55:1. Vàng cam mà đủ 4.5:1 làm chữ thì ngả hẳn sang nâu, nên đừng dùng
+   * `text-warning` trên nền sáng: badge cảnh báo dùng chữ trung tính + chấm màu.
+   */
+  --warning: oklch(0.64 0.17 55);
+  /* "Đang xử lý" — xanh dương, đạt 6.1:1 trên card nên dùng được cả làm chữ. */
+  --info: oklch(0.5 0.17 255);
+  /*
+   * Ba màu này vừa tô nến/sparkline, vừa làm **màu chữ** của badge %, nên độ
+   * sáng bị chặn bởi yêu cầu chữ chứ không phải đồ hoạ: chữ 12px trên nền badge
+   * (màu này 10%) chồng lên dòng đang hover/chọn phải đạt ≥ 4.5:1 (WCAG AA).
+   * Giá trị hiện tại đạt ~4.9:1 ở ca tệ nhất. Xanh lá là màu khó nhất — bản
+   * sáng hơn (L 0.58) chỉ đạt 3.4:1. Đổi sáng lên thì chạy lại
+   * e2e/watchlist-a11y.spec.ts.
+   */
+  --market-green: oklch(0.48 0.15 149);
+  --market-red: oklch(0.52 0.21 27);
+  --market-blue: oklch(0.5 0.17 255);
+  --border: oklch(0.922 0 0);
+  --input: oklch(0.922 0 0);
+  /*
+   * Màu vòng focus. Mặc định của shadcn là L 0.708 — trên nền trắng chỉ đạt
+   * 2.58:1, dưới mức 3:1 mà chỉ báo focus cần có (WCAG 1.4.11), nên người dùng
+   * bàn phím khó thấy mình đang ở đâu. L 0.556 (cùng độ sáng với
+   * `--muted-foreground`) đạt 4.74:1 trên trắng, 4.54:1 trên dòng đang hover.
+   * Dark mode giữ nguyên vì L 0.556 trên nền tối vốn đã đạt 3.5–4.2:1.
+   */
+  --ring: oklch(0.556 0 0);
+  --chart-1: oklch(0.646 0.222 41.116);
+  --chart-2: oklch(0.6 0.118 184.704);
+  --chart-3: oklch(0.398 0.07 227.392);
+  --chart-4: oklch(0.828 0.189 84.429);
+  --chart-5: oklch(0.769 0.188 70.08);
+  --sidebar: oklch(0.985 0 0);
+  --sidebar-foreground: oklch(0.145 0 0);
+  --sidebar-primary: oklch(0.205 0 0);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.97 0 0);
+  --sidebar-accent-foreground: oklch(0.205 0 0);
+  --sidebar-border: oklch(0.922 0 0);
+}
+
+.dark {
+  --background: oklch(0.145 0 0);
+  --foreground: oklch(0.985 0 0);
+  --card: oklch(0.205 0 0);
+  --card-foreground: oklch(0.985 0 0);
+  --popover: oklch(0.205 0 0);
+  --popover-foreground: oklch(0.985 0 0);
+  --primary: oklch(0.922 0 0);
+  --primary-foreground: oklch(0.205 0 0);
+  --secondary: oklch(0.269 0 0);
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.269 0 0);
+  --muted-foreground: oklch(0.708 0 0);
+  --accent: oklch(0.269 0 0);
+  --accent-foreground: oklch(0.985 0 0);
+  --destructive: oklch(0.704 0.191 22.216);
+  --success: oklch(0.72 0.14 163);
+  /* Trên nền tối, màu chữ vốn đã đủ sáng để làm mảng màu. */
+  --success-fill: var(--success);
+  --warning: oklch(0.8 0.17 75);
+  --info: oklch(0.7 0.15 255);
+  --market-green: oklch(0.72 0.17 149);
+  --market-red: oklch(0.7 0.19 22);
+  --market-blue: oklch(0.7 0.15 255);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.556 0 0);
+  --chart-1: oklch(0.488 0.243 264.376);
+  --chart-2: oklch(0.696 0.17 162.48);
+  --chart-3: oklch(0.769 0.188 70.08);
+  --chart-4: oklch(0.627 0.265 303.9);
+  --chart-5: oklch(0.645 0.246 16.439);
+  --sidebar: oklch(0.205 0 0);
+  --sidebar-foreground: oklch(0.985 0 0);
+  --sidebar-primary: oklch(0.488 0.243 264.376);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.269 0 0);
+  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar-border: oklch(1 0 0 / 10%);
+}
+
+/*
+ * Quy ước màu tăng/giảm của thị trường.
+ *
+ * Âu Mỹ, **Việt Nam** và Hồng Kông đọc xanh lá là tăng, đỏ là giảm; Nhật, Trung
+ * Quốc, Hàn Quốc, Đài Loan đọc ĐỎ là tăng. Cùng một badge đỏ, hai nơi hiểu ngược
+ * nhau. Việt Nam hay bị xếp nhầm vào nhóm "châu Á đỏ tăng" — bảng điện HOSE/HNX
+ * dùng xanh tăng, đỏ giảm, cộng thêm vàng = tham chiếu, tím = trần, xanh lam =
+ * sàn (VNDirect, CafeF). Chiều giảm ở nhóm đỏ-tăng cũng không thống nhất: xanh
+ * lá (Rakuten, SBI, Trung Quốc, Đài Loan) hoặc xanh dương (Hàn Quốc, Daiwa) —
+ * kit chọn xanh dương để người mù màu đỏ–lục vẫn tách được hai chiều.
+ *
+ * Nên component không bao giờ tự chọn "xanh lá" hay "đỏ": nó luôn dùng
+ * `--price-rise` / `--price-fall`, và chỉ chỗ này quyết định hai biến đó là màu
+ * gì. Đổi quy ước = đổi một thuộc tính `data-price-convention`, không phải đi
+ * sửa từng component — kể cả chart canvas, vì chart đọc lại đúng hai token này.
+ */
+:root,
+[data-price-convention="east-asian"] {
+  --price-rise: var(--market-red);
+  --price-fall: var(--market-blue);
+}
+
+[data-price-convention="western"] {
+  --price-rise: var(--market-green);
+  --price-fall: var(--market-red);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-success: var(--success);
+  --color-success-fill: var(--success-fill);
+  --color-warning: var(--warning);
+  --color-info: var(--info);
+  --color-price-rise: var(--price-rise);
+  --color-price-fall: var(--price-fall);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}

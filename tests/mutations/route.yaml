@@ -1,0 +1,78 @@
+# Mutation manifest — see scripts/mutation_check.py
+#
+# A passing test proves nothing on its own. These break each behavior in turn
+# and require the named test to fail. A mutation that SURVIVES means the test
+# guards nothing.
+
+target: scripts/route.py
+note: The resolver is the policy's deterministic half. Each entry breaks one rule of policy.yaml as the
+  resolver applies it and names the test that must notice.
+mutations:
+- label: read-only signals reach override matching
+  find: '    effective = [signal for signal in emitted if signal not in exempt]
+
+    '
+  replace: '    effective = list(emitted)
+
+    '
+  test: tests.test_route.ScoreAndOverrideTests.test_read_only_signals_are_dropped_before_matching
+- label: an override can lower the tier
+  find: '    final_tier = highest_tier(policy, candidates)
+
+    '
+  replace: '    final_tier = candidates[-1]
+
+    '
+  test: tests.test_route.ScoreAndOverrideTests.test_an_override_never_lowers_a_tier
+- label: match_all_signals fires on a partial match
+  find: "        if all_of and not (all_of <= present):\n            continue\n"
+  replace: "        if all_of and not (all_of & present):\n            continue\n"
+  test: tests.test_route.ScoreAndOverrideTests.test_match_all_needs_every_signal
+- label: the dimension arm of a conditional agent never fires
+  find: "            if dimensions[dimension] >= value:\n                reasons.append(f\"{dimension}\
+    \ {dimensions[dimension]} >= {value}\")\n            else:\n                return None\n"
+  replace: '            return None
+
+    '
+  test: tests.test_route.RosterAndBudgetTests.test_t2_architect_fires_on_the_dimension_arm_alone
+- label: the signal arm of a conditional agent never fires
+  find: "            hit = [signal for signal in value if signal in signals]\n            if hit:\n  \
+    \              reasons.append(f\"signal {hit[0]}\")\n            else:\n                return None\n"
+  replace: '            return None
+
+    '
+  test: tests.test_route.RosterAndBudgetTests.test_t2_architect_fires_on_the_signal_arm_alone
+- label: escalation_reserve is added at classification time
+  find: "            runtime.append(summary)\n            continue\n"
+  replace: "            granted.append({**summary, \"agent\": grantable[0]})\n            continue\n"
+  test: tests.test_route.RosterAndBudgetTests.test_escalation_reserve_is_never_added_at_classification_time
+- label: analyst_reserve is never granted
+  find: "        if dimensions[dimension] >= threshold and payable:\n            granted.append({**summary,\
+    \ \"agent\": payable[0]})\n"
+  replace: '        pass
+
+    '
+  test: tests.test_route.RosterAndBudgetTests.test_ambiguity_2_at_t3_fires_the_analyst_and_grants_its_reserve
+- label: an unknown grant_condition is treated as a runtime reserve
+  find: "            if condition not in RUNTIME_GRANT_CONDITIONS:\n                raise RoutingError(\n"
+  replace: "            if False:\n                raise RoutingError(\n"
+  test: tests.test_route.ValidationTests.test_rejects_a_reserve_condition_it_cannot_classify
+- label: a roster larger than its ceiling is accepted
+  find: "    if len(required) > ceiling:\n        raise RoutingError(\n            f\"{final_tier} requires\
+    \ {required} but its ceiling is {ceiling}; the policy is inconsistent\"\n        )\n"
+  replace: ''
+  test: tests.test_route.ValidationTests.test_rejects_a_roster_larger_than_its_ceiling
+- label: --check reports no mismatches
+  find: "        if not same:\n            mismatches[field] = {\"emitted\": emitted, \"resolved\": expected}\n"
+  replace: '        pass
+
+    '
+  test: tests.test_route.CheckTests.test_a_misapplied_override_is_a_mismatch_on_the_route_fields_only
+- label: a boolean scores as an integer
+  find: '        if isinstance(value, bool) or not isinstance(value, int) or value not in allowed:
+
+    '
+  replace: '        if not isinstance(value, int) or value not in allowed:
+
+    '
+  test: tests.test_route.ValidationTests.test_rejects_scores_outside_the_allowed_values

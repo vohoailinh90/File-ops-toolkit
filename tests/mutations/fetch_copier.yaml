@@ -1,0 +1,24 @@
+# Mutation manifest — see scripts/mutation_check.py
+target: file_ops_toolkit/copier.py
+note: The destination is never overwritten, and "already copied" means identical bytes.
+mutations:
+- label: any existing file with the name counts as the earlier copy
+  find: "            if _same_file(source, candidate, stat):"
+  replace: "            if True:"
+  test: tests.test_fetch_core.CopierTests.test_a_different_file_with_the_same_name_is_never_overwritten
+- label: size and time alone decide that a file is the earlier copy
+  find: "        return filecmp.cmp(source, candidate, shallow=False)"
+  replace: "        return True"
+  test: tests.test_fetch_core.RunnerTests.test_every_row_gets_a_status_and_all_matches_are_copied
+- label: an identical earlier copy is written again under a new name
+  find: "                return CopyOutcome(str(candidate), True)"
+  replace: "                continue"
+  test: tests.test_fetch_core.CopierTests.test_identical_copy_from_an_earlier_run_is_reported_not_duplicated
+- label: a failed copy leaves its .part file behind
+  find: "        except BaseException:\n            _discard(part)\n            raise"
+  replace: "        except BaseException:\n            raise"
+  test: tests.test_fetch_core.CopierTests.test_a_failed_copy_leaves_no_partial_file
+- label: the copy does not keep the source's modification time
+  find: "            shutil.copystat(source, part)\n"
+  replace: ""
+  test: tests.test_fetch_core.CopierTests.test_copy_keeps_content_and_leaves_the_source_alone

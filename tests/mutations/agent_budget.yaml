@@ -1,0 +1,97 @@
+# Mutation manifest — see scripts/mutation_check.py
+#
+# A passing test proves nothing on its own. These break each behavior in turn
+# and require the named test to fail. A mutation that SURVIVES means the test
+# guards nothing.
+
+target: scripts/hooks/agent_budget.py
+note: The hook is what makes max_agent_invocations a refusal rather than prose. Each entry removes one
+  piece of the accounting and names the test that must notice.
+mutations:
+- label: the Task spelling of the spawn tool is no longer a spawn
+  find: SPAWN_TOOLS = {"Agent", "Task"}
+  replace: SPAWN_TOOLS = {"Agent"}
+  test: tests.test_agent_budget.DecisionTests.test_the_legacy_task_tool_name_counts_as_a_spawn
+- label: a reserve pays for any agent
+  find: '        if reserve.get("spent_by") is None and agent in reserve.get("grantable_agents", []):
+
+    '
+  replace: '        if reserve.get("spent_by") is None:
+
+    '
+  test: tests.test_agent_budget.ChargingTests.test_a_non_grantable_agent_cannot_take_a_reserve_slot
+- label: a full base pays out when a reserve the agent may not take is unspent
+  find: "    elif base_used(ledger) < ledger[\"base\"]:\n        charged_to = \"base\"\n    else:\n  \
+    \      raise BudgetExceeded(refusal(ledger, agent))\n"
+  replace: "    else:\n        charged_to = \"base\"\n"
+  test: tests.test_agent_budget.ChargingTests.test_a_non_grantable_agent_cannot_take_a_reserve_slot
+- label: a reserve can be granted past its amount
+  find: "    if already >= runtime[\"amount\"]:\n        raise LedgerError(f\"{reserve_name} is already\
+    \ fully granted ({already}/{runtime['amount']}) at {ledger['tier']}\")\n"
+  replace: ''
+  test: tests.test_agent_budget.GrantTests.test_escalation_reserve_is_granted_once_and_only_for_its_agent
+- label: a reserve can be granted to an agent it may not pay for
+  find: "    if agent is not None and agent not in grantable:\n        raise LedgerError(f\"{reserve_name}\
+    \ may only pay for {grantable}, not {agent}\")\n"
+  replace: ''
+  test: tests.test_agent_budget.GrantTests.test_escalation_reserve_is_granted_once_and_only_for_its_agent
+- label: CLAUDE_AGENT_BUDGET_UNROUTED=deny is ignored
+  find: "            if os.environ.get(UNROUTED_VAR, \"\").strip().lower() == \"deny\":\n            \
+    \    return \"deny\", UNROUTED_NUDGE + \" (Refused: CLAUDE_AGENT_BUDGET_UNROUTED=deny.)\"\n"
+  replace: ''
+  test: tests.test_agent_budget.DecisionTests.test_unrouted_spawns_are_denied_when_asked
+- label: a corrupt ledger goes silent
+  find: "        except LedgerError as exc:\n            log(f\"{exc}; treating the checkout as unrouted\"\
+    )\n            ledger = None\n"
+  replace: "        except LedgerError:\n            ledger = None\n"
+  test: tests.test_agent_budget.DecisionTests.test_a_corrupt_ledger_fails_open_as_unrouted_and_says_so
+- label: a foreign ledger version is trusted
+  find: "    if ledger.get(\"version\") != LEDGER_VERSION:\n        raise LedgerError(f\"ledger version\
+    \ {ledger.get('version')!r} is not {LEDGER_VERSION}\")\n"
+  replace: ''
+  test: tests.test_agent_budget.LedgerBuildTests.test_a_corrupt_or_foreign_ledger_is_an_error_not_a_budget
+- label: an unexpected error breaks the session instead of failing open
+  find: '        except Exception as exc:  # fail open: never break the session being protected
+
+    '
+  replace: '        except LedgerError as exc:
+
+    '
+  test: tests.test_agent_budget.ProcessTests.test_hook_subcommands_fail_open_on_an_unexpected_error
+- label: the OS lock is never actually taken
+  find: '            fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+
+    '
+  replace: '            pass
+
+    '
+  test: tests.test_agent_budget.DecisionTests.test_the_lock_excludes_another_process_while_held
+- label: re-recording forgets what was already spent
+  find: '            carried = carry_over(ledger, previous)
+
+    '
+  replace: '            carried = 0
+
+    '
+  test: tests.test_agent_budget.ReRecordTests.test_same_label_carries_every_charge_into_the_new_ceiling
+- label: an overdrawn ledger still pays out of a reserve
+  find: '    if len(ledger["invocations"]) >= ceiling(ledger):
+
+    '
+  replace: '    if False:
+
+    '
+  test: tests.test_agent_budget.ReRecordTests.test_an_overdrawn_ledger_refuses_reserves_too
+- label: re-recording runs outside the ledger lock
+  find: "    root = root or repo_root()\n    with ledger_lock(root):\n        ledger = build_ledger(route,\
+    \ requirement)\n"
+  replace: "    root = root or repo_root()\n    if True:\n        ledger = build_ledger(route, requirement)\n"
+  test: tests.test_agent_budget.ReRecordTests.test_recording_holds_the_ledger_lock_across_load_carry_and_write
+- label: EACCES from a contended flock falls through to fail-open
+  find: '            if exc.errno in CONTENTION_ERRNOS:
+
+    '
+  replace: '            if exc.errno in CONTENTION_ERRNOS - {errno.EACCES}:
+
+    '
+  test: tests.test_agent_budget.DecisionTests.test_eacces_from_flock_is_contention_not_a_broken_lock

@@ -1,0 +1,28 @@
+# Mutation manifest — see scripts/mutation_check.py
+target: file_ops_toolkit/server.py
+note: The local API can write to disk, so its three guards each need a test that notices their removal.
+mutations:
+- label: the API token is not checked
+  find: "        return secrets.compare_digest(self.headers.get(TOKEN_HEADER, \"\"), self.state.token)"
+  replace: "        return True"
+  test: tests.test_fetch_server.ServerTests.test_page_carries_the_token_and_api_without_it_is_refused
+- label: the Host header is not checked
+  find: "        return host in (\"127.0.0.1\", \"localhost\", \"::1\")"
+  replace: "        return True"
+  test: tests.test_fetch_server.ServerTests.test_a_foreign_host_header_is_refused
+- label: the server binds to any interface
+  find: "    if host not in (\"127.0.0.1\", \"localhost\", \"::1\"):"
+  replace: "    if False:"
+  test: tests.test_fetch_server.ServerTests.test_refuses_to_bind_to_a_public_interface
+- label: static files can leave the UI folder
+  find: "        if root not in target.parents and target != root:"
+  replace: "        if False:"
+  test: tests.test_fetch_server.ServerTests.test_static_files_cannot_escape_the_ui_folder
+- label: the page is served without its token
+  find: "            body = body.replace(b\"</head>\", meta.encode(\"ascii\") + b\"</head>\", 1)"
+  replace: "            pass"
+  test: tests.test_fetch_server.ServerTests.test_page_carries_the_token_and_api_without_it_is_refused
+- label: an unknown layout is accepted by the API
+  find: "        if not dest or options.layout not in LAYOUTS:"
+  replace: "        if not dest:"
+  test: tests.test_fetch_server.ServerTests.test_bad_inputs_get_codes_not_crashes

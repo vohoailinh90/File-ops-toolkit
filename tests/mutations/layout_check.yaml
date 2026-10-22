@@ -1,0 +1,134 @@
+# Mutation manifest — see scripts/mutation_check.py
+#
+# A passing test proves nothing on its own. These break each behavior in turn
+# and require the named test to fail. A mutation that SURVIVES means the test
+# guards nothing.
+
+target: scripts/layout_check.py
+note: The root-layout gate. Each entry removes one of the checks CI relies on and names the test that
+  must notice.
+mutations:
+- label: a test file in the root is accepted
+  find: "        if is_test_name(path.stem):\n"
+  replace: "        if False:\n"
+  test: tests.test_layout_check.LayoutCheckTests.test_a_test_file_in_the_root_is_an_error
+- label: a test directory in the root is accepted
+  find: "            if name != TEST_DIR and (is_test_name(name) or"
+  replace: "            if False and (is_test_name(name) or"
+  test: tests.test_layout_check.LayoutCheckTests.test_a_test_directory_in_the_root_is_an_error
+- label: a library module in the root is accepted
+  find: "        if not (declares_entry_point(source) or has_main_guard(tree)):\n"
+  replace: "        if False:\n"
+  test: tests.test_layout_check.LayoutCheckTests.test_a_library_module_in_the_root_is_an_error
+- label: the entry-point limit is never enforced
+  find: "    if len(entry_points) > max_root_scripts:\n"
+  replace: "    if False:\n"
+  test: tests.test_layout_check.LayoutCheckTests.test_too_many_entry_points_is_an_error
+- label: a main guard nested in a function counts as an entry point
+  find: "    for node in tree.body:\n        if not isinstance(node, ast.If):\n"
+  replace: "    for node in ast.walk(tree):\n        if not isinstance(node, ast.If):\n"
+  test: tests.test_layout_check.LayoutCheckTests.test_a_nested_main_guard_does_not_count
+- label: run_tests_sample.py style names escape the test-file rule
+  find: "    return any(word in TEST_WORDS for word in name_words(stem))\n"
+  replace: "    return stem.startswith(\"test_\") or stem.endswith(\"_test\")\n"
+  test: tests.test_layout_check.LayoutCheckTests.test_a_test_file_in_the_root_is_an_error
+- label: a root file that cannot be read crashes the gate instead of failing it
+  find: "        except (OSError, SyntaxError, UnicodeDecodeError, ValueError) as exc:\n"
+  replace: "        except (SyntaxError, UnicodeDecodeError, ValueError) as exc:\n"
+  test: tests.test_layout_check.LayoutCheckTests.test_an_unreadable_root_file_is_an_error_not_a_crash
+- label: hidden root entries skip every check
+  find: "        if path.is_dir():\n            # A hidden directory"
+  replace: "        if name.startswith(\".\"):\n            continue\n        if path.is_dir():\n            # A hidden directory"
+  test: tests.test_layout_check.LayoutCheckTests.test_hidden_python_files_are_inspected
+- label: a UTF-8 BOM launcher is reported as unparseable
+  find: "            tree = ast.parse(source, filename=name)\n"
+  replace: "            tree = ast.parse(source.decode(\"utf-8\"), filename=name)\n"
+  test: tests.test_layout_check.LayoutCheckTests.test_a_utf8_bom_launcher_is_an_entry_point
+- label: an acronym before Test hides a test file (APITest.py)
+  find: "|(?<=[A-Z])(?=[A-Z][a-z])\")\n"
+  replace: "\")\n"
+  test: tests.test_layout_check.LayoutCheckTests.test_a_test_file_in_the_root_is_an_error
+- label: the explicit entry-point marker is ignored
+  find: "        if not (declares_entry_point(source) or has_main_guard(tree)):\n"
+  replace: "        if not has_main_guard(tree):\n"
+  test: tests.test_layout_check.LayoutCheckTests.test_a_streamlit_app_needs_the_marker
+- label: the marker is honoured anywhere in the file
+  find: "            if token.start[0] > ENTRY_POINT_MARKER_LINES:\n                break\n"
+  replace: ""
+  test: tests.test_layout_check.LayoutCheckTests.test_the_marker_counts_only_in_the_first_lines
+- label: any comment mentioning the marker counts
+  find: "token.string.strip().lower() == ENTRY_POINT_MARKER:"
+  replace: "ENTRY_POINT_MARKER[2:] in token.string.lower():"
+  test: tests.test_layout_check.LayoutCheckTests.test_the_marker_must_be_the_whole_comment
+- label: the Streamlit hint is shown for every module
+  find: "            if imports_streamlit(tree):\n"
+  replace: "            if True:\n"
+  test: tests.test_layout_check.LayoutCheckTests.test_a_plain_module_gets_the_generic_hint
+- label: the marker is read from string literals too, so a docstring declares a launcher
+  find: "            if token.type == tokenize.COMMENT and token.string"
+  replace: "            if token.type in (tokenize.COMMENT, tokenize.STRING) and ENTRY_POINT_MARKER in token.string.lower() or token.string"
+  test: tests.test_layout_check.LayoutCheckTests.test_the_marker_inside_a_string_is_not_a_declaration
+- label: an upper-case .PY file escapes the gate
+  find: "        if path.suffix.lower() not in PYTHON_SUFFIXES:\n"
+  replace: "        if path.suffix not in PYTHON_SUFFIXES:\n"
+  test: tests.test_layout_check.LayoutCheckTests.test_python_suffixes_are_matched_case_insensitively
+- label: a .pyw file escapes the gate
+  find: "PYTHON_SUFFIXES = frozenset({\".py\", \".pyw\"})\n"
+  replace: "PYTHON_SUFFIXES = frozenset({\".py\"})\n"
+  test: tests.test_layout_check.LayoutCheckTests.test_python_suffixes_are_matched_case_insensitively
+- label: a JavaScript test file in the root is accepted
+  find: "        if path.suffix.lower() in JS_SUFFIXES and is_js_test_name(path.stem):\n"
+  replace: "        if False:\n"
+  test: tests.test_layout_check.LayoutCheckTests.test_a_javascript_test_in_the_root_is_an_error
+- label: node --test word names (test-foo.js, foo_test.cjs, test.js) escape the gate
+  find: "    return is_test_name(stem) or any(word in JS_TEST_WORDS"
+  replace: "    return any(word in JS_TEST_WORDS"
+  test: tests.test_layout_check.LayoutCheckTests.test_a_javascript_test_in_the_root_is_an_error
+- label: a spec file escapes the gate
+  find: "    return is_test_name(stem) or any(word in JS_TEST_WORDS for word in name_words(stem))\n"
+  replace: "    return is_test_name(stem)\n"
+  test: tests.test_layout_check.LayoutCheckTests.test_a_javascript_test_in_the_root_is_an_error
+- label: spec is matched as a substring (inspect.js, special.ts)
+  find: "any(word in JS_TEST_WORDS for word in name_words(stem))"
+  replace: "\"spec\" in stem.lower()"
+  test: tests.test_layout_check.LayoutCheckTests.test_ordinary_javascript_files_are_not_checked
+- label: a CamelCase Spec name (CalculatorSpec.js) escapes the gate
+  find: "    return [word.lower() for word in WORD_SPLIT.split(CAMEL_BOUNDARY.sub(\"_\", stem))]\n"
+  replace: "    return [word.lower() for word in WORD_SPLIT.split(stem)]\n"
+  test: tests.test_layout_check.LayoutCheckTests.test_a_javascript_test_in_the_root_is_an_error
+- label: a JS suffix is matched case-sensitively
+  find: "        if path.suffix.lower() in JS_SUFFIXES and"
+  replace: "        if path.suffix in JS_SUFFIXES and"
+  test: tests.test_layout_check.LayoutCheckTests.test_a_javascript_test_in_the_root_is_an_error
+- label: Conftest.py escapes the gate on a case-insensitive file system
+  find: "    if stem.lower() == \"conftest\":\n"
+  replace: "    if stem == \"conftest\":\n"
+  test: tests.test_layout_check.LayoutCheckTests.test_a_test_file_in_the_root_is_an_error
+- label: a file name the console cannot encode crashes the gate
+  find: "        sys.stdout.reconfigure(errors=\"backslashreplace\")\n"
+  replace: "        pass\n"
+  test: tests.test_layout_check.LayoutCheckTests.test_a_name_the_console_cannot_encode_is_escaped_not_a_crash
+- label: a root spec/ directory of tests is accepted
+  find: " or name.lower() in SPEC_DIRS and holds_test_code(path)"
+  replace: ""
+  test: tests.test_layout_check.LayoutCheckTests.test_a_spec_directory_holding_tests_is_an_error
+- label: a Spec Kit specs/ directory of documents is reported as tests
+  find: "path.suffix.lower() in SPEC_CODE_SUFFIXES and is_js_test_name"
+  replace: "is_js_test_name"
+  test: tests.test_layout_check.LayoutCheckTests.test_a_specs_directory_of_documents_is_not_a_test_directory
+- label: an allowance exempts every root module, not just the named one
+  find: "            if name in unused_allowances:\n"
+  replace: "            if name in unused_allowances or allowed_modules:\n"
+  test: tests.test_layout_check.LayoutCheckTests.test_an_allowed_root_module_is_exempt_and_nothing_else_is
+- label: an allowance outlives its module silently
+  find: "    for allowed in sorted(unused_allowances):\n"
+  replace: "    for allowed in []:\n"
+  test: tests.test_layout_check.LayoutCheckTests.test_an_allowance_does_not_outlive_its_module
+- label: an allowance matches a file whose name differs only in letter case
+  find: "            if name in unused_allowances:\n                unused_allowances.discard(name)\n"
+  replace: "            if name.lower() in {a.lower() for a in unused_allowances}:\n                unused_allowances.difference_update({a for a in set(unused_allowances) if a.lower() == name.lower()})\n"
+  test: tests.test_layout_check.LayoutCheckTests.test_an_allowance_matches_the_exact_file_name
+- label: an allowance that is a path or a non-Python file is accepted
+  find: "        if Path(name).name != name or Path(name).suffix.lower() not in PYTHON_SUFFIXES:\n"
+  replace: "        if False:\n"
+  test: tests.test_layout_check.LayoutCheckTests.test_bad_arguments_exit_2
