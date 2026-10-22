@@ -5,6 +5,7 @@ from __future__ import annotations
 import filecmp
 import os
 import shutil
+import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -34,9 +35,11 @@ def copy_without_overwrite(src: str, dest_dir: str) -> CopyOutcome:
             if _same_file(source, candidate, stat):
                 return CopyOutcome(str(candidate), True)
             continue
-        part = candidate.with_name(candidate.name + ".part")
+        part: Path | None = None  # set only once this call has created it, so only this call ever deletes it
         try:
-            with open(source, "rb") as reader, open(part, "xb") as writer:
+            fd, part_name = tempfile.mkstemp(dir=target_dir, prefix=candidate.name + ".", suffix=".part")
+            part = Path(part_name)
+            with os.fdopen(fd, "wb") as writer, open(source, "rb") as reader:
                 shutil.copyfileobj(reader, writer, length=1024 * 1024)
             shutil.copystat(source, part)
             _publish(part, candidate)
@@ -82,7 +85,9 @@ def _publish(part: Path, final: Path) -> None:
     os.unlink(part)
 
 
-def _discard(part: Path) -> None:
+def _discard(part: Path | None) -> None:
+    if part is None:
+        return
     try:
         part.unlink()
     except OSError:

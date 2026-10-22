@@ -209,6 +209,14 @@ class CopierTests(unittest.TestCase):
         self.assertEqual(Path(out.dest).name, "a (2).txt")
         self.assertEqual((self.root / "dest" / "a.txt").read_text(), "mine")
 
+    def test_an_existing_part_file_of_the_user_is_never_deleted_or_overwritten(self):
+        src = touch(self.root / "src" / "report.txt", "new")
+        mine = touch(self.root / "dest" / "report.txt.part", "my unfinished data")
+        out = copy_without_overwrite(str(src), str(self.root / "dest"))
+        self.assertEqual(mine.read_text(), "my unfinished data")
+        self.assertEqual(Path(out.dest).read_text(), "new")
+        self.assertEqual(sorted(p.name for p in (self.root / "dest").iterdir()), ["report.txt", "report.txt.part"])
+
     def test_a_failed_copy_leaves_no_partial_file(self):
         src = touch(self.root / "src" / "a.txt", "hello")
         with mock.patch("file_ops_toolkit.copier.shutil.copyfileobj", side_effect=OSError("disk full")):
@@ -267,6 +275,28 @@ class RunnerTests(unittest.TestCase):
             self.assertEqual(ctx.exception.code, "dest_inside_source")
         self.assertFalse((self.a / "out").exists())
         run_job(self.jobs()[:1], str(self.root / "srv" / "19QMC_0039_other"))  # a sibling that shares a prefix is fine
+
+    def test_the_by_folder_layout_cannot_aim_a_copy_at_a_source_folder(self):
+        # destination = the parent of the sources: flat is fine, but by_folder would write into 19QMC_0039 itself
+        parent = str(self.a.parent)
+        run_job(self.jobs()[:1], parent)
+        for layout in ("by_folder",):
+            with self.subTest(layout=layout), self.assertRaises(DestinationError) as ctx:
+                run_job(self.jobs()[:1], parent, Options(layout=layout))
+            self.assertEqual(ctx.exception.code, "dest_inside_source")
+        self.assertFalse((self.a / "report_0501.xlsx.part").exists())
+        self.assertEqual(sorted(p.name for p in self.a.iterdir()), ["deep", "report_0501.xlsx"])
+
+    def test_a_destination_reached_through_a_symlink_into_a_source_is_refused(self):
+        alias = self.root / "alias"
+        try:
+            alias.symlink_to(self.a, target_is_directory=True)
+        except (OSError, NotImplementedError):
+            self.skipTest("this system cannot create symlinks")
+        for dest in (str(alias), str(alias / "out"), str(alias / "not" / "yet" / "there")):
+            with self.subTest(dest=dest), self.assertRaises(DestinationError):
+                run_job(self.jobs()[:1], dest)
+        self.assertEqual(sorted(p.name for p in self.a.iterdir()), ["deep", "report_0501.xlsx"])
 
     def test_sources_are_never_modified(self):
         before = {p: p.read_text() for p in (self.root / "srv").rglob("*") if p.is_file()}

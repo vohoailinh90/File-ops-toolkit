@@ -213,7 +213,7 @@ class _Handler(BaseHTTPRequestHandler):
             if self.state.run is not None and self.state.run.state == "running":
                 return self._error(HTTPStatus.CONFLICT, "run_in_progress")
             try:
-                check_destination(self.state.rows, dest)
+                check_destination(self.state.rows, dest, options.layout)
             except DestinationError as exc:
                 return self._error(HTTPStatus.UNPROCESSABLE_ENTITY, exc.code)
             run = JobRun(self.state.rows, dest, options)

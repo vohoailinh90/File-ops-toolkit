@@ -22,3 +22,7 @@ mutations:
   find: "            shutil.copystat(source, part)\n"
   replace: ""
   test: tests.test_fetch_core.CopierTests.test_copy_keeps_content_and_leaves_the_source_alone
+- label: the temporary file is a predictable name that can belong to someone else
+  find: "            fd, part_name = tempfile.mkstemp(dir=target_dir, prefix=candidate.name + \".\", suffix=\".part\")"
+  replace: "            part_name = str(candidate) + \".part\"\n            fd = os.open(part_name, os.O_CREAT | os.O_WRONLY | os.O_TRUNC)"
+  test: tests.test_fetch_core.CopierTests.test_an_existing_part_file_of_the_user_is_never_deleted_or_overwritten

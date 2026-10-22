@@ -55,19 +55,34 @@ class DestinationError(ValueError):
         self.code = code
 
 
-def check_destination(rows: list[JobRow], dest: str) -> None:
-    """Refuse a destination inside (or equal to) a folder the list reads from: that would write into the source."""
-    target = _comparable(dest)
-    for job in rows:
-        if job.error:
-            continue
-        source = _comparable(job.address)
-        if target == source or target.startswith(source + os.sep):
-            raise DestinationError("dest_inside_source")
+def check_destination(rows: list[JobRow], dest: str, layout: str = "flat") -> None:
+    """Refuse any folder a run would write to that is inside (or equal to) a folder the list reads from.
+
+    That is the destination itself and, for the by-folder layout, every sub-folder the layout adds to it,
+    each compared after symlinks and junctions are resolved: writing there would write into the source.
+    """
+    sources = {_comparable(job.address) for job in rows if not job.error}
+    targets = {_comparable(dest)}
+    if layout == "by_folder":
+        targets |= {_comparable(os.path.join(dest, _by_folder_name(job.address))) for job in rows if not job.error}
+    for target in targets:
+        current = target
+        while True:  # the target itself, then each parent: a source anywhere on the way makes it inside
+            if current in sources:
+                raise DestinationError("dest_inside_source")
+            parent = os.path.dirname(current)
+            if parent == current:
+                break
+            current = parent
+
+
+def _by_folder_name(address: str) -> str:
+    return safe_dir_name(display_name(address))
 
 
 def _comparable(path: str) -> str:
-    return os.path.normcase(os.path.abspath(path)).rstrip("\\/")
+    """A path in one spelling: absolute, aliases resolved (also below folders that do not exist yet), no case."""
+    return os.path.normcase(os.path.realpath(path)).rstrip("\\/")
 
 
 def run_job(rows: list[JobRow], dest: str, options: Options = Options(),
@@ -76,7 +91,7 @@ def run_job(rows: list[JobRow], dest: str, options: Options = Options(),
     """Process every row; the result list is in Excel row order. A cancelled run keeps what it finished."""
     if options.layout not in LAYOUTS:
         raise ValueError(f"unknown layout {options.layout!r}")
-    check_destination(rows, dest)
+    check_destination(rows, dest, options.layout)
     cancel = cancel or threading.Event()
     results: dict[int, RowResult] = {}
 
@@ -110,7 +125,7 @@ def _run_folder(group: list[JobRow], dest: str, options: Options,
         return
     if cancel.is_set():
         return
-    target = str(Path(dest) / safe_dir_name(display_name(address))) if options.layout == "by_folder" else dest
+    target = str(Path(dest) / _by_folder_name(address)) if options.layout == "by_folder" else dest
     for job in group:
         if cancel.is_set():
             return

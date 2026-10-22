@@ -39,6 +39,6 @@ mutations:
   replace: "        if False:"
   test: tests.test_fetch_server.ServerTests.test_windows_spellings_in_a_static_path_are_refused
 - label: a destination inside a source is accepted by the API
-  find: "                check_destination(self.state.rows, dest)\n"
+  find: "                check_destination(self.state.rows, dest, options.layout)\n"
   replace: "                pass\n"
   test: tests.test_fetch_server.ServerTests.test_a_destination_inside_a_source_is_refused_and_since_must_be_a_number
