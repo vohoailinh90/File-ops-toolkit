@@ -1,0 +1,110 @@
+# Mutation manifest — see scripts/mutation_check.py
+#
+# A passing test proves nothing on its own. These break each behavior in turn
+# and require the named test to fail. A mutation that SURVIVES means the test
+# guards nothing.
+
+target: scripts/i18n_check.py
+note: The bilingual catalog gate. Each entry removes one of the checks CI relies on and names the test
+  that must notice.
+mutations:
+- label: a missing required locale file is accepted
+  find: "        if name not in files:\n"
+  replace: "        if False:\n"
+  test: tests.test_bilingual.CheckerTests.test_a_missing_required_locale_is_an_error
+- label: a key missing from one locale is accepted
+  find: "        if key not in flat:\n"
+  replace: "        if False:\n"
+  test: tests.test_bilingual.CheckerTests.test_missing_key_is_an_error
+- label: placeholders are not compared across locales
+  find: "        if len({frozenset(s) for s in shapes.values()}) > 1:\n"
+  replace: "        if False:\n"
+  test: tests.test_bilingual.CheckerTests.test_placeholder_mismatch_is_an_error
+- label: an empty message is accepted
+  find: "        if not message.strip():\n"
+  replace: "        if False:\n"
+  test: tests.test_bilingual.CheckerTests.test_empty_message_is_an_error
+- label: a plural form without its partner is accepted
+  find: "            if key.endswith(suffix) and key[: -len(suffix)] + partner not in flat:\n"
+  replace: "            if False:\n"
+  test: tests.test_bilingual.CheckerTests.test_a_plural_form_needs_its_partner
+- label: a JSON file that is not named for a locale escapes the gate
+  find: "            files[path.stem] = path\n        else:\n"
+  replace: "            files[path.stem] = path\n        elif False:\n"
+  test: tests.test_bilingual.CheckerTests.test_a_json_file_that_is_not_a_locale_is_an_error
+- label: a duplicate key is accepted, and json.loads silently drops one of them
+  find: "    for key in sorted({key for key in names if names.count(key) > 1}):\n"
+  replace: "    for key in ():\n"
+  test: tests.test_bilingual.CheckerTests.test_a_duplicate_key_is_an_error
+- label: discovery stops at the first locales/ directory and misses nested ones
+  find: "                record(path)  # wherever it leads: the app loads it from here\n"
+  replace: "                record(path)\n                continue\n"
+  test: tests.test_bilingual.CheckerTests.test_discovery_descends_below_a_catalog_directory
+- label: a root that is itself named locales/ is no longer checked
+  find: "    if root.name == CATALOG_DIR_NAME:\n"
+  replace: "    if False:\n"
+  test: tests.test_bilingual.CheckerTests.test_discovery_descends_below_a_catalog_directory
+- label: a locales link is passed over although the runtimes follow it
+  find: "            if name == CATALOG_DIR_NAME:\n"
+  replace: "            if name == CATALOG_DIR_NAME and not os.path.islink(path):\n"
+  test: tests.test_bilingual.CheckerTests.test_discovery_checks_a_catalog_directory_reached_through_a_link
+- label: a locales link whose target is missing is passed over
+  find: "        if CATALOG_DIR_NAME in files and os.path.islink("
+  replace: "        if False and os.path.islink("
+  test: tests.test_bilingual.CheckerTests.test_a_catalog_link_whose_target_is_missing_is_an_error
+- label: a catalog reachable by two paths is checked twice
+  find: "        if real not in recorded:\n"
+  replace: "        if True:\n"
+  test: tests.test_bilingual.CheckerTests.test_a_catalog_reachable_by_two_paths_is_checked_once
+- label: a dangling locales link is globbed like a directory instead of reported
+  find: "    if not directory.is_dir():\n        # Discovery records"
+  replace: "    if False:\n        # Discovery records"
+  test: tests.test_bilingual.CheckerTests.test_a_catalog_link_whose_target_is_missing_is_an_error
+- label: identical text becomes a hard error
+  find: "                    warnings.append(\n"
+  replace: "                    errors.append(\n"
+  test: tests.test_bilingual.CheckerTests.test_identical_text_is_a_warning_not_an_error
+- label: discovery descends into dependency and hidden directories
+  find: "    return name.startswith(\".\") or name in SKIP_DIRS\n"
+  replace: "    return False\n"
+  test: tests.test_bilingual.CheckerTests.test_discovery_skips_dependencies_and_hidden_directories
+- label: findings do not fail the run
+  find: "    return 1 if total_errors else 0\n"
+  replace: "    return 0\n"
+  test: tests.test_bilingual.CheckerTests.test_the_command_line_exit_status_follows_the_findings
+- label: a regional catalog name (ja-JP.json) is accepted but can never be selected
+  find: "LOCALE_FILE = re.compile(r\"^[a-z]{2,3}$\")\n"
+  replace: "LOCALE_FILE = re.compile(r\"^[a-z]{2,3}(?:[-_][A-Za-z0-9]{2,8})*$\")\n"
+  test: tests.test_bilingual.CheckerTests.test_a_json_file_that_is_not_a_locale_is_an_error
+- label: a --root that does not exist discovers nothing and passes the gate
+  find: "    if not args.dirs and not args.root.is_dir():\n"
+  replace: "    if False:\n"
+  test: tests.test_bilingual.CheckerTests.test_a_discovery_root_that_does_not_exist_is_a_usage_error
+- label: linked directories are not walked, so a catalog below a linked parent escapes the gate
+  find: "os.walk(root, followlinks=True)"
+  replace: "os.walk(root)"
+  test: tests.test_bilingual.CheckerTests.test_discovery_walks_a_linked_directory_above_a_catalog
+- label: a real directory can be walked twice, so two links back to a parent never finish
+  find: "            if real in walked or top.is_relative_to(real):\n"
+  replace: "            if top.is_relative_to(real):\n"
+  test: tests.test_bilingual.CheckerTests.test_discovery_ends_on_link_cycles
+- label: a link to the root's parent is followed and walks everything around the repository
+  find: "            if real in walked or top.is_relative_to(real):\n"
+  replace: "            if real in walked:\n"
+  test: tests.test_bilingual.CheckerTests.test_discovery_does_not_follow_links_into_dependencies_or_above_the_root
+- label: a link into node_modules is walked because only the link's own name is checked
+  find: "            if inside_skipped(real, top):\n"
+  replace: "            if False:\n"
+  test: tests.test_bilingual.CheckerTests.test_discovery_does_not_follow_links_into_dependencies_or_above_the_root
+- label: a locales link into a hidden or dependency directory is skipped although the app loads it
+  find: "            if skipped(name):\n"
+  replace: "            if skipped(name) or skipped(os.path.basename(real)):\n"
+  test: tests.test_bilingual.CheckerTests.test_a_catalog_link_is_checked_wherever_it_leads
+- label: only a link target's own name is checked, so a link to a package inside node_modules is walked
+  find: "    return any(skipped(part) for part in Path(os.path.relpath(real, base)).parts)\n"
+  replace: "    return skipped(os.path.basename(real))\n"
+  test: tests.test_bilingual.CheckerTests.test_discovery_does_not_follow_links_into_dependencies_or_above_the_root
+- label: a link target's whole path is inspected, so a repository under a hidden directory follows no links
+  find: "        base = os.path.commonpath([str(top), real])\n"
+  replace: "        base = Path(real).anchor\n"
+  test: tests.test_bilingual.CheckerTests.test_a_repository_under_a_hidden_directory_still_follows_its_links

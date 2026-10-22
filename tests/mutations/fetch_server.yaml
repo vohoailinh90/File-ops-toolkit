@@ -1,0 +1,44 @@
+# Mutation manifest — see scripts/mutation_check.py
+target: file_ops_toolkit/server.py
+note: The local API can write to disk, so its three guards each need a test that notices their removal.
+mutations:
+- label: the API token is not checked
+  find: "        return secrets.compare_digest(self.headers.get(TOKEN_HEADER, \"\"), self.state.token)"
+  replace: "        return True"
+  test: tests.test_fetch_server.ServerTests.test_page_carries_the_token_and_api_without_it_is_refused
+- label: the Host header is not checked
+  find: "        return host in (\"127.0.0.1\", \"localhost\", \"::1\")"
+  replace: "        return True"
+  test: tests.test_fetch_server.ServerTests.test_a_foreign_host_header_is_refused
+- label: the server binds to any interface
+  find: "    if host not in (\"127.0.0.1\", \"localhost\", \"::1\"):"
+  replace: "    if False:"
+  test: tests.test_fetch_server.ServerTests.test_refuses_to_bind_to_a_public_interface
+- label: static files can leave the UI folder
+  find: "        if root not in target.parents and target != root:"
+  replace: "        if False:"
+  test: tests.test_fetch_server.ServerTests.test_static_files_cannot_escape_the_ui_folder
+- label: the page is served without its token
+  find: "            body = body.replace(b\"</head>\", meta.encode(\"ascii\") + b\"</head>\", 1)"
+  replace: "            pass"
+  test: tests.test_fetch_server.ServerTests.test_page_carries_the_token_and_api_without_it_is_refused
+- label: an unknown layout is accepted by the API
+  find: "        if not dest or options.layout not in LAYOUTS:"
+  replace: "        if not dest:"
+  test: tests.test_fetch_server.ServerTests.test_bad_inputs_get_codes_not_crashes
+- label: the CSV language is limited to ja and en
+  find: "        tr.set_locale(lang if lang in tr.locales else \"en\")"
+  replace: "        tr.set_locale(lang if lang in (\"ja\", \"en\") else \"en\")"
+  test: tests.test_fetch_server.ServerTests.test_the_csv_follows_the_requested_language_and_neutralises_formulas
+- label: a run is started outside the server lock
+  find: "            run.start()  # inside the lock: no upload or second run can see this run as idle\n        self._json({\"ok\": True})"
+  replace: "        run.start()\n        self._json({\"ok\": True})"
+  test: tests.test_fetch_server.ServerTests.test_a_started_run_cannot_be_replaced_by_an_upload
+- label: a Windows spelling in a static path is resolved
+  find: "        if \":\" in relative or \"\\\\\" in relative:"
+  replace: "        if False:"
+  test: tests.test_fetch_server.ServerTests.test_windows_spellings_in_a_static_path_are_refused
+- label: a destination inside a source is accepted by the API
+  find: "                check_destination(self.state.rows, dest, options.layout)\n"
+  replace: "                pass\n"
+  test: tests.test_fetch_server.ServerTests.test_a_destination_inside_a_source_is_refused_and_since_must_be_a_number

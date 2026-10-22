@@ -1,0 +1,44 @@
+name: CI
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-python@v5
+      with:
+        python-version: "3.10"
+    - uses: actions/setup-node@v4
+      with:
+        node-version: "22"
+    - name: Install Python dependencies
+      run: pip install -r requirements.txt -r requirements-dev.txt
+    - name: Lint with flake8
+      run: |
+        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics --exclude web/node_modules,.git
+        flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics --exclude web/node_modules,.git
+    - name: Test with pytest
+      run: pytest
+    - name: Mutation check
+      # Proves the tests named in tests/mutations/ fail when the behavior they guard is removed.
+      run: python scripts/mutation_check.py --all
+    - name: Bilingual catalog check
+      run: python scripts/i18n_check.py
+    - name: Repository layout check
+      run: python scripts/layout_check.py
+    - name: Web UI (typecheck, lint, build)
+      working-directory: web
+      run: |
+        npm ci
+        npm run typecheck
+        npm run lint
+        npm run build

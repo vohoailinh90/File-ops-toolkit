@@ -1,0 +1,143 @@
+{
+  "app": {
+    "title": "File Fetch",
+    "subtitle": "Copy the files named in an Excel list from server folders to a folder you choose."
+  },
+  "language": {
+    "label": "Language"
+  },
+  "theme": {
+    "toggle": "Toggle theme"
+  },
+  "steps": {
+    "upload": "1. Excel list",
+    "dest": "2. Destination",
+    "run": "3. Run"
+  },
+  "upload": {
+    "hint": "Column A: folder (e.g. \\\\server\\share\\folder). Column B: file name. Row 1 is the header.",
+    "choose": "Choose Excel file",
+    "change": "Choose another file",
+    "drop": "Drop an .xlsx file here or choose one",
+    "rows_one": "{count} row",
+    "rows_other": "{count} rows",
+    "folders_one": "{count} folder",
+    "folders_other": "{count} folders",
+    "invalid_one": "{count} row cannot run",
+    "invalid_other": "{count} rows cannot run",
+    "reading": "Reading the file…"
+  },
+  "table": {
+    "row": "Row",
+    "folder": "Folder",
+    "file": "File name",
+    "status": "Status",
+    "files": "Copied files",
+    "showing": "Showing {shown} of {total} rows",
+    "show_more": "Show more"
+  },
+  "dest": {
+    "hint": "Files are copied here. Nothing on the server is changed or deleted, and existing files here are never overwritten.",
+    "label": "Destination folder",
+    "placeholder": "C:\\Users\\you\\Downloads\\reports",
+    "browse": "Browse…",
+    "recursive": "Search sub-folders too",
+    "recursive_hint": "Turn off to look only in the folder itself.",
+    "layout": "Layout",
+    "layout_flat": "All files in one folder",
+    "layout_by_folder": "One sub-folder per source folder",
+    "layout_hint": "If two folders hold a file with the same name, the second copy is named “name (2)”."
+  },
+  "picker": {
+    "title": "Choose a folder",
+    "up": "Up",
+    "select": "Use this folder",
+    "empty": "No sub-folders",
+    "drives": "Drives and shortcuts",
+    "error": "This folder cannot be opened.",
+    "current": "Current folder"
+  },
+  "run": {
+    "start": "Start",
+    "cancel": "Cancel",
+    "running": "Running…",
+    "done": "Finished",
+    "cancelled": "Cancelled",
+    "failed": "The run failed: {message}",
+    "progress": "{done} of {total} rows",
+    "need_list": "Choose an Excel list first.",
+    "need_dest": "Enter a destination folder.",
+    "elapsed": "{seconds} s"
+  },
+  "stats": {
+    "rows": "Rows done",
+    "copied": "Files copied",
+    "not_found": "Not found",
+    "problems": "Need attention"
+  },
+  "results": {
+    "title": "Results",
+    "all": "All",
+    "problems": "Need attention",
+    "export": "Export CSV",
+    "empty": "No rows to show."
+  },
+  "status": {
+    "copied": "Copied",
+    "already_copied": "Already copied",
+    "not_found": "File not found",
+    "folder_missing": "Folder not found",
+    "folder_not_a_directory": "Not a folder",
+    "folder_unreadable": "Cannot open folder",
+    "missing_address": "No folder in column A",
+    "missing_name": "No file name in column B",
+    "invalid_name": "Invalid file name",
+    "unsupported_link": "Web links are not supported",
+    "error": "Copy failed",
+    "invalid_address": "Not a folder path",
+    "scan_incomplete": "Some folders could not be searched"
+  },
+  "errors": {
+    "unreadable_workbook": "This file cannot be read as an .xlsx workbook.",
+    "empty_workbook": "No rows found below the header.",
+    "too_many_rows": "The list is too long (limit 50,000 rows).",
+    "run_in_progress": "A run is already in progress.",
+    "no_list": "Choose an Excel list first.",
+    "bad_request": "The request was not understood.",
+    "bad_token": "The session expired. Reload the page.",
+    "bad_host": "Open the page from the address the tool printed.",
+    "too_large": "The file is too large (limit 25 MB).",
+    "not_found": "Not found.",
+    "no_results": "There are no results yet.",
+    "folder_unreadable": "This folder cannot be opened.",
+    "cannot_open": "Cannot open the file: {message}",
+    "generic": "Something went wrong.",
+    "dest_inside_source": "Choose a destination outside the source folders: it would write into the server folder."
+  },
+  "report": {
+    "row": "Row",
+    "address": "Folder",
+    "file_name": "File name",
+    "status": "Status",
+    "files": "Copied to",
+    "detail": "Detail"
+  },
+  "cli": {
+    "description": "Copy the files named in an Excel list from server folders to a destination folder.",
+    "lang_help": "Interface language",
+    "serve_help": "Open the web UI (default)",
+    "port_help": "Port for the web UI",
+    "no_browser_help": "Do not open a browser",
+    "run_help": "Run a list without the web UI",
+    "excel_help": "Excel file: column A folder, column B file name",
+    "dest_help": "Destination folder",
+    "no_recursive_help": "Do not search sub-folders",
+    "layout_help": "flat: one folder; by_folder: a sub-folder per source folder",
+    "report_help": "Write a CSV report to this path",
+    "summary_one": "Copied {count} file. Rows: {rows}. Need attention: {problems}.",
+    "summary_other": "Copied {count} files. Rows: {rows}. Need attention: {problems}."
+  },
+  "warnings": {
+    "scan_incomplete": "Some sub-folders could not be opened, so other matching files may exist there."
+  }
+}

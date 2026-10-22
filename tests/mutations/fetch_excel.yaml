@@ -1,0 +1,24 @@
+# Mutation manifest — see scripts/mutation_check.py
+target: file_ops_toolkit/excel.py
+note: Where the folder of a row comes from.
+mutations:
+- label: the hyperlink target is ignored
+  find: "    target = cell.hyperlink.target if cell.hyperlink is not None and cell.hyperlink.target else \"\""
+  replace: "    target = \"\""
+  test: tests.test_fetch_core.ExcelTests.test_hyperlink_target_wins_over_friendly_text
+- label: a HYPERLINK() formula is ignored
+  find: "        if match:\n            return match.group(1)"
+  replace: "        if False and match:\n            return match.group(1)"
+  test: tests.test_fetch_core.ExcelTests.test_hyperlink_formula_is_read
+- label: a row's Excel number is lost
+  find: "        rows.append(_job(number, "
+  replace: "        rows.append(_job(len(rows) + 2, "
+  test: tests.test_fetch_core.ExcelTests.test_reads_text_cells_from_row_two_with_excel_row_numbers
+- label: an invalid row is dropped instead of reported
+  find: "        return JobRow(number, \"\", name_text.strip(), exc.code)"
+  replace: "        raise"
+  test: tests.test_fetch_core.ExcelTests.test_invalid_rows_are_kept_with_their_reason
+- label: leading zeros of a zero-formatted number are lost
+  find: "        return text.zfill(len(cell.number_format))"
+  replace: "        return text"
+  test: tests.test_fetch_core.ExcelTests.test_a_number_formatted_with_leading_zeros_keeps_them

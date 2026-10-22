@@ -1,0 +1,143 @@
+{
+  "app": {
+    "title": "Lấy file hàng loạt",
+    "subtitle": "Sao chép các file nêu trong danh sách Excel từ thư mục trên server về thư mục bạn chọn."
+  },
+  "language": {
+    "label": "Ngôn ngữ"
+  },
+  "theme": {
+    "toggle": "Đổi giao diện sáng/tối"
+  },
+  "steps": {
+    "upload": "1. Danh sách Excel",
+    "dest": "2. Thư mục đích",
+    "run": "3. Chạy"
+  },
+  "upload": {
+    "hint": "Cột A: thư mục (vd \\\\server\\share\\folder). Cột B: tên file. Dòng 1 là tiêu đề.",
+    "choose": "Chọn file Excel",
+    "change": "Chọn file khác",
+    "drop": "Kéo thả file .xlsx vào đây hoặc bấm để chọn",
+    "rows_one": "{count} dòng",
+    "rows_other": "{count} dòng",
+    "folders_one": "{count} thư mục",
+    "folders_other": "{count} thư mục",
+    "invalid_one": "{count} dòng không chạy được",
+    "invalid_other": "{count} dòng không chạy được",
+    "reading": "Đang đọc file…"
+  },
+  "table": {
+    "row": "Dòng",
+    "folder": "Thư mục",
+    "file": "Tên file",
+    "status": "Trạng thái",
+    "files": "File đã sao chép",
+    "showing": "Hiển thị {shown} / {total} dòng",
+    "show_more": "Xem thêm"
+  },
+  "dest": {
+    "hint": "File được sao chép vào đây. Không có gì trên server bị sửa hay xóa, và file có sẵn ở đây không bao giờ bị ghi đè.",
+    "label": "Thư mục đích",
+    "placeholder": "C:\\Users\\you\\Downloads\\reports",
+    "browse": "Duyệt…",
+    "recursive": "Tìm cả trong thư mục con",
+    "recursive_hint": "Tắt để chỉ tìm ngay trong thư mục đó.",
+    "layout": "Cách lưu",
+    "layout_flat": "Tất cả file trong một thư mục",
+    "layout_by_folder": "Mỗi thư mục nguồn một thư mục con",
+    "layout_hint": "Nếu hai thư mục có file trùng tên, bản thứ hai được đặt tên “tên (2)”."
+  },
+  "picker": {
+    "title": "Chọn thư mục",
+    "up": "Lên trên",
+    "select": "Dùng thư mục này",
+    "empty": "Không có thư mục con",
+    "drives": "Ổ đĩa và lối tắt",
+    "error": "Không mở được thư mục này.",
+    "current": "Thư mục hiện tại"
+  },
+  "run": {
+    "start": "Bắt đầu",
+    "cancel": "Hủy",
+    "running": "Đang chạy…",
+    "done": "Đã xong",
+    "cancelled": "Đã hủy",
+    "failed": "Lần chạy thất bại: {message}",
+    "progress": "{done} / {total} dòng",
+    "need_list": "Hãy chọn danh sách Excel trước.",
+    "need_dest": "Hãy nhập thư mục đích.",
+    "elapsed": "{seconds} giây"
+  },
+  "stats": {
+    "rows": "Dòng đã xử lý",
+    "copied": "File đã sao chép",
+    "not_found": "Không tìm thấy",
+    "problems": "Cần xem lại"
+  },
+  "results": {
+    "title": "Kết quả",
+    "all": "Tất cả",
+    "problems": "Cần xem lại",
+    "export": "Xuất CSV",
+    "empty": "Không có dòng nào để hiển thị."
+  },
+  "status": {
+    "copied": "Đã sao chép",
+    "already_copied": "Đã có sẵn",
+    "not_found": "Không tìm thấy file",
+    "folder_missing": "Không thấy thư mục",
+    "folder_not_a_directory": "Không phải thư mục",
+    "folder_unreadable": "Không mở được thư mục",
+    "missing_address": "Cột A chưa có thư mục",
+    "missing_name": "Cột B chưa có tên file",
+    "invalid_name": "Tên file không hợp lệ",
+    "unsupported_link": "Chưa hỗ trợ liên kết web",
+    "error": "Sao chép lỗi",
+    "invalid_address": "Không phải đường dẫn thư mục",
+    "scan_incomplete": "Một số thư mục không tìm được"
+  },
+  "errors": {
+    "unreadable_workbook": "Không đọc được file này như một workbook .xlsx.",
+    "empty_workbook": "Không có dòng nào bên dưới tiêu đề.",
+    "too_many_rows": "Danh sách quá dài (tối đa 50.000 dòng).",
+    "run_in_progress": "Đang có một lần chạy.",
+    "no_list": "Hãy chọn danh sách Excel trước.",
+    "bad_request": "Yêu cầu không hợp lệ.",
+    "bad_token": "Phiên đã hết hạn. Hãy tải lại trang.",
+    "bad_host": "Hãy mở trang từ địa chỉ mà tool đã in ra.",
+    "too_large": "File quá lớn (tối đa 25 MB).",
+    "not_found": "Không tìm thấy.",
+    "no_results": "Chưa có kết quả.",
+    "folder_unreadable": "Không mở được thư mục này.",
+    "cannot_open": "Không mở được file: {message}",
+    "generic": "Đã xảy ra lỗi.",
+    "dest_inside_source": "Hãy chọn thư mục đích nằm ngoài các thư mục nguồn: nếu không sẽ ghi vào thư mục trên server."
+  },
+  "report": {
+    "row": "Dòng",
+    "address": "Thư mục",
+    "file_name": "Tên file",
+    "status": "Trạng thái",
+    "files": "Đã sao chép tới",
+    "detail": "Chi tiết"
+  },
+  "cli": {
+    "description": "Sao chép các file nêu trong danh sách Excel từ thư mục trên server về thư mục đích.",
+    "lang_help": "Ngôn ngữ giao diện",
+    "serve_help": "Mở giao diện web (mặc định)",
+    "port_help": "Cổng cho giao diện web",
+    "no_browser_help": "Không mở trình duyệt",
+    "run_help": "Chạy một danh sách mà không cần giao diện web",
+    "excel_help": "File Excel: cột A thư mục, cột B tên file",
+    "dest_help": "Thư mục đích",
+    "no_recursive_help": "Không tìm trong thư mục con",
+    "layout_help": "flat: một thư mục; by_folder: mỗi thư mục nguồn một thư mục con",
+    "report_help": "Ghi báo cáo CSV vào đường dẫn này",
+    "summary_one": "Đã sao chép {count} file. Số dòng: {rows}. Cần xem lại: {problems}.",
+    "summary_other": "Đã sao chép {count} file. Số dòng: {rows}. Cần xem lại: {problems}."
+  },
+  "warnings": {
+    "scan_incomplete": "Một số thư mục con không mở được, nên có thể còn file khớp tên ở đó."
+  }
+}

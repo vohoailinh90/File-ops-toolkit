@@ -1,0 +1,143 @@
+{
+  "app": {
+    "title": "ファイル一括取得",
+    "subtitle": "Excelの一覧にあるファイルをサーバーのフォルダーから指定のフォルダーへコピーします。"
+  },
+  "language": {
+    "label": "言語"
+  },
+  "theme": {
+    "toggle": "テーマを切り替え"
+  },
+  "steps": {
+    "upload": "1. Excel一覧",
+    "dest": "2. 保存先",
+    "run": "3. 実行"
+  },
+  "upload": {
+    "hint": "A列：フォルダー（例：\\\\server\\share\\folder）、B列：ファイル名。1行目は見出しです。",
+    "choose": "Excelファイルを選択",
+    "change": "別のファイルを選択",
+    "drop": "ここに.xlsxファイルをドロップするか、選択してください",
+    "rows_one": "{count}行",
+    "rows_other": "{count}行",
+    "folders_one": "{count}フォルダー",
+    "folders_other": "{count}フォルダー",
+    "invalid_one": "{count}行は実行できません",
+    "invalid_other": "{count}行は実行できません",
+    "reading": "ファイルを読み込んでいます…"
+  },
+  "table": {
+    "row": "行",
+    "folder": "フォルダー",
+    "file": "ファイル名",
+    "status": "状態",
+    "files": "コピーしたファイル",
+    "showing": "{total}行中{shown}行を表示",
+    "show_more": "さらに表示"
+  },
+  "dest": {
+    "hint": "ファイルはここにコピーされます。サーバー上のファイルは変更・削除されず、ここにある既存のファイルも上書きされません。",
+    "label": "保存先フォルダー",
+    "placeholder": "C:\\Users\\you\\Downloads\\reports",
+    "browse": "参照…",
+    "recursive": "サブフォルダーも検索する",
+    "recursive_hint": "オフにすると、そのフォルダー直下のみを検索します。",
+    "layout": "保存形式",
+    "layout_flat": "すべて1つのフォルダーに保存",
+    "layout_by_folder": "元のフォルダーごとにサブフォルダーを作成",
+    "layout_hint": "別のフォルダーに同名のファイルがある場合、2つ目は「名前 (2)」として保存されます。"
+  },
+  "picker": {
+    "title": "フォルダーを選択",
+    "up": "上へ",
+    "select": "このフォルダーを使う",
+    "empty": "サブフォルダーはありません",
+    "drives": "ドライブとショートカット",
+    "error": "このフォルダーを開けません。",
+    "current": "現在のフォルダー"
+  },
+  "run": {
+    "start": "開始",
+    "cancel": "キャンセル",
+    "running": "実行中…",
+    "done": "完了しました",
+    "cancelled": "キャンセルしました",
+    "failed": "実行に失敗しました：{message}",
+    "progress": "{done} / {total}行",
+    "need_list": "先にExcel一覧を選択してください。",
+    "need_dest": "保存先フォルダーを入力してください。",
+    "elapsed": "{seconds}秒"
+  },
+  "stats": {
+    "rows": "処理済みの行",
+    "copied": "コピーしたファイル",
+    "not_found": "見つからない",
+    "problems": "要確認"
+  },
+  "results": {
+    "title": "結果",
+    "all": "すべて",
+    "problems": "要確認",
+    "export": "CSVを書き出す",
+    "empty": "表示する行がありません。"
+  },
+  "status": {
+    "copied": "コピーしました",
+    "already_copied": "コピー済み",
+    "not_found": "ファイルが見つかりません",
+    "folder_missing": "フォルダーが見つかりません",
+    "folder_not_a_directory": "フォルダーではありません",
+    "folder_unreadable": "フォルダーを開けません",
+    "missing_address": "A列にフォルダーがありません",
+    "missing_name": "B列にファイル名がありません",
+    "invalid_name": "ファイル名が正しくありません",
+    "unsupported_link": "Webリンクには対応していません",
+    "error": "コピーに失敗しました",
+    "invalid_address": "フォルダーのパスではありません",
+    "scan_incomplete": "一部のフォルダーを検索できませんでした"
+  },
+  "errors": {
+    "unreadable_workbook": "このファイルは.xlsxブックとして読み込めません。",
+    "empty_workbook": "見出しの下に行がありません。",
+    "too_many_rows": "一覧が長すぎます（上限50,000行）。",
+    "run_in_progress": "すでに実行中です。",
+    "no_list": "先にExcel一覧を選択してください。",
+    "bad_request": "リクエストを理解できませんでした。",
+    "bad_token": "セッションの有効期限が切れました。ページを再読み込みしてください。",
+    "bad_host": "ツールが表示したアドレスからページを開いてください。",
+    "too_large": "ファイルが大きすぎます（上限25MB）。",
+    "not_found": "見つかりません。",
+    "no_results": "まだ結果がありません。",
+    "folder_unreadable": "このフォルダーを開けません。",
+    "cannot_open": "ファイルを開けません：{message}",
+    "generic": "問題が発生しました。",
+    "dest_inside_source": "保存先は元のフォルダーの外にしてください。サーバー上のフォルダーに書き込んでしまいます。"
+  },
+  "report": {
+    "row": "行",
+    "address": "フォルダー",
+    "file_name": "ファイル名",
+    "status": "状態",
+    "files": "コピー先",
+    "detail": "詳細"
+  },
+  "cli": {
+    "description": "Excelの一覧にあるファイルをサーバーのフォルダーから保存先へコピーします。",
+    "lang_help": "表示言語",
+    "serve_help": "Web UIを開く（既定）",
+    "port_help": "Web UIのポート番号",
+    "no_browser_help": "ブラウザーを開かない",
+    "run_help": "Web UIを使わずに一覧を実行する",
+    "excel_help": "Excelファイル：A列がフォルダー、B列がファイル名",
+    "dest_help": "保存先フォルダー",
+    "no_recursive_help": "サブフォルダーを検索しない",
+    "layout_help": "flat：1つのフォルダー、by_folder：元のフォルダーごとのサブフォルダー",
+    "report_help": "このパスにCSVレポートを書き出す",
+    "summary_one": "{count}個のファイルをコピーしました。行数：{rows}、要確認：{problems}。",
+    "summary_other": "{count}個のファイルをコピーしました。行数：{rows}、要確認：{problems}。"
+  },
+  "warnings": {
+    "scan_incomplete": "一部のサブフォルダーを開けなかったため、ほかに該当するファイルがある可能性があります。"
+  }
+}

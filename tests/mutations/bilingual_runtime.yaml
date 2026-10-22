@@ -1,0 +1,74 @@
+# Mutation manifest — see scripts/mutation_check.py
+#
+# A passing test proves nothing on its own. These break each behavior in turn
+# and require the named test to fail. A mutation that SURVIVES means the test
+# guards nothing.
+
+target: .claude/skills/bilingual/runtime/python/i18n.py
+note: The Python runtime every derived app copies. Each entry breaks one behavior a user would see in
+  the wrong language or the wrong form, and names the test that must notice.
+mutations:
+- label: English singular is never selected
+  find: "    return \"one\" if locale in ONE_FORM_LOCALES and abs(count) == 1 else \"other\"\n"
+  replace: "    return \"other\"\n"
+  test: tests.test_bilingual.PythonRuntimeTests.test_messages_params_plurals_and_fallback
+- label: plural category ignores the sign rule CLDR and Intl.PluralRules apply
+  find: "    return \"one\" if locale in ONE_FORM_LOCALES and abs(count) == 1 else \"other\"\n"
+  replace: "    return \"one\" if locale in ONE_FORM_LOCALES and count == 1 else \"other\"\n"
+  test: tests.test_bilingual.PythonRuntimeTests.test_plural_category_follows_cldr_at_the_edges
+- label: a signalling Decimal NaN reaches abs() and raises
+  find: "    if isinstance(count, Decimal) and count.is_nan():\n        return \"other\"\n"
+  replace: ""
+  test: tests.test_bilingual.PythonRuntimeTests.test_count_must_be_a_number
+- label: the fallback locale is never consulted
+  find: "        for name in (self.locale, self.fallback):\n"
+  replace: "        for name in (self.locale,):\n"
+  test: tests.test_bilingual.PythonRuntimeTests.test_a_key_missing_from_the_active_locale_falls_back
+- label: the environment beats an explicit choice
+  find: "    for candidate in (explicit, env.get(ENV_VAR)):\n"
+  replace: "    for candidate in (env.get(ENV_VAR), explicit):\n"
+  test: tests.test_bilingual.PythonRuntimeTests.test_detect_locale_precedence
+- label: LC_ALL=C no longer means untranslated
+  find: "        if found in _UNTRANSLATED:\n            found = FALLBACK_LOCALE\n"
+  replace: ""
+  test: tests.test_bilingual.PythonRuntimeTests.test_posix_variables_decide_as_posix_reads_them
+- label: an unsupported authoritative variable falls through to a lower one
+  find: "if v and v.strip()), None)\n"
+  replace: "if normalize_locale(v) in supported), None)\n"
+  test: tests.test_bilingual.PythonRuntimeTests.test_posix_variables_decide_as_posix_reads_them
+- label: the OS locale is asked although a POSIX variable is set
+  find: "        return found if found in supported else default\n"
+  replace: "        if found in supported:\n            return found\n"
+  test: tests.test_bilingual.PythonRuntimeTests.test_posix_variables_decide_as_posix_reads_them
+- label: a fallback plural is chosen by the active locale's rule
+  find: "                category = plural_category(source, count)\n"
+  replace: "                category = plural_category(self.locale, count)\n"
+  test: tests.test_bilingual.PythonRuntimeTests.test_a_fallback_plural_follows_the_fallback_locales_rule
+- label: a plural missing from the active catalog is never looked up in the fallback
+  find: "            for source in dict.fromkeys((self.locale, self.fallback)):\n"
+  replace: "            for source in (self.locale,):\n"
+  test: tests.test_bilingual.PythonRuntimeTests.test_a_fallback_plural_follows_the_fallback_locales_rule
+- label: a count that is not a number is accepted
+  find: "            if isinstance(count, bool) or not isinstance(count, (numbers.Real, Decimal)):\n"
+  replace: "            if False:\n"
+  test: tests.test_bilingual.PythonRuntimeTests.test_count_must_be_a_number
+- label: a Decimal count is rejected although abs() handles it
+  find: "not isinstance(count, (numbers.Real, Decimal)):\n"
+  replace: "not isinstance(count, numbers.Real):\n"
+  test: tests.test_bilingual.PythonRuntimeTests.test_count_must_be_a_number
+- label: from_dir loads every JSON file, including ones the checker never checked
+  find: "            if LOCALE_FILE.match(path.stem)\n"
+  replace: "            if True\n"
+  test: tests.test_bilingual.PythonRuntimeTests.test_from_dir_loads_only_what_the_checker_checks
+- label: Windows locale names are not recognised
+  find: "    return _WINDOWS_NAMES.get(base, base) or None\n"
+  replace: "    return base or None\n"
+  test: tests.test_bilingual.PythonRuntimeTests.test_normalize_locale
+- label: placeholders are substituted with str.format
+  find: "    return PLACEHOLDER.sub(substitute, template)\n"
+  replace: "    return template.format(**params)\n"
+  test: tests.test_bilingual.PythonRuntimeTests.test_placeholders_are_never_format_evaluated
+- label: a regional catalog name (ja-JP.json) is accepted but can never be selected
+  find: "LOCALE_FILE = re.compile(r\"^[a-z]{2,3}$\")\n"
+  replace: "LOCALE_FILE = re.compile(r\"^[a-z]{2,3}(?:[-_][A-Za-z0-9]{2,8})*$\")\n"
+  test: tests.test_bilingual.PythonRuntimeTests.test_regional_catalog_names_fail_loudly_instead_of_never_being_chosen

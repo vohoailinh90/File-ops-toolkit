@@ -1,0 +1,25 @@
+{
+  "app": {
+    "title": "My Tool",
+    "description": "Replace these starter strings with your app's own."
+  },
+  "language": {
+    "label": "Language"
+  },
+  "actions": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "run": "Run",
+    "close": "Close",
+    "export": "Export"
+  },
+  "status": {
+    "loading": "Loading…",
+    "done": "Done",
+    "error": "Something went wrong: {message}"
+  },
+  "files": {
+    "processed_one": "Processed {count} file",
+    "processed_other": "Processed {count} files"
+  }
+}
