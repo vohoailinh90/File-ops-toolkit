@@ -11,7 +11,7 @@ from typing import Callable
 
 from .copier import copy_without_overwrite
 from .excel import JobRow
-from .finder import FolderError, display_name, find_matches, folder_key, scan_folder
+from .finder import FolderError, display_name, find_matches, scan_folder
 from .paths import safe_dir_name
 
 LAYOUTS = ("flat", "by_folder")
@@ -113,7 +113,8 @@ def run_job(rows: list[JobRow], dest: str, options: Options = Options(),
         if job.error:
             finish(RowResult(job.row, job.address, job.file_name, job.error))
         else:
-            runnable.setdefault(folder_key(job.address), []).append(job)
+            # the filesystem's own identity of a folder (no folding): /jobs/A and /jobs/a can be two folders
+            runnable.setdefault(_key(os.path.normcase(job.address)), []).append(job)
 
     for group in runnable.values():  # one folder at a time: its index is dropped before the next walk
         if cancel.is_set():

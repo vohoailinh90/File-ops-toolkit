@@ -3,7 +3,7 @@ target: file_ops_toolkit/runner.py
 note: What a run copies, reports and refuses.
 mutations:
 - label: one folder is scanned once per row instead of once per folder
-  find: "            runnable.setdefault(folder_key(job.address), []).append(job)"
+  find: "            runnable.setdefault(_key(os.path.normcase(job.address)), []).append(job)"
   replace: "            runnable.setdefault(str(job.row), []).append(job)"
   test: tests.test_fetch_core.RunnerTests.test_a_folder_shared_by_many_rows_is_scanned_once
 - label: by_folder layout copies flat
@@ -50,3 +50,7 @@ mutations:
   find: "    elif result.warning:\n        result.status = \"scan_incomplete\""
   replace: "    elif False:\n        result.status = \"scan_incomplete\""
   test: tests.test_fetch_core.RunnerTests.test_an_unreadable_subfolder_is_reported_instead_of_hidden
+- label: folders are grouped with case and Unicode folding
+  find: "            runnable.setdefault(_key(os.path.normcase(job.address)), []).append(job)"
+  replace: "            runnable.setdefault(str(job.address).casefold(), []).append(job)"
+  test: tests.test_fetch_core.RunnerTests.test_folders_whose_names_differ_only_by_case_are_not_merged_when_the_filesystem_keeps_them_apart

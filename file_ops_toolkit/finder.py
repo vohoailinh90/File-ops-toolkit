@@ -93,9 +93,5 @@ def find_matches(index: FolderIndex, name: str) -> list[str]:
     return list(found or [])
 
 
-def folder_key(path: str) -> str:
-    return fold(os.path.normcase(path).rstrip("\\/") or path)
-
-
 def display_name(path: str) -> str:
     return Path(path.replace("\\", "/")).name

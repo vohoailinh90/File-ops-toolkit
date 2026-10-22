@@ -332,6 +332,16 @@ class RunnerTests(unittest.TestCase):
         self.assertEqual(key("\\\\srv\\share"), key("\\\\srv\\share\\"))
         self.assertEqual(key("\\\\srv\\share\\a\\"), "\\\\srv\\share\\a")
 
+    def test_folders_whose_names_differ_only_by_case_are_not_merged_when_the_filesystem_keeps_them_apart(self):
+        upper, lower = self.root / "jobs" / "A", self.root / "jobs" / "a"
+        touch(upper / "report.txt", "from A")
+        if lower.exists():
+            self.skipTest("this filesystem treats A and a as one folder")
+        touch(lower / "report.txt", "from a")
+        results = run_job([JobRow(2, str(upper), "report.txt"), JobRow(3, str(lower), "report.txt")], self.dest)
+        self.assertEqual([r.status for r in results], ["copied", "copied"])
+        self.assertEqual(sorted(p.read_text() for p in Path(self.dest).iterdir()), ["from A", "from a"])
+
     def test_a_filesystem_root_as_a_source_contains_every_destination(self):
         root = JobRow(2, os.path.abspath(os.sep), "x.txt")
         with self.assertRaises(DestinationError) as ctx:
