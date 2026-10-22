@@ -18,6 +18,8 @@ và sao chép toàn bộ về một thư mục do bạn chọn. Giao diện web 
   Nếu ô hiển thị chữ thân thiện (vd "Mở thư mục"), tool dùng địa chỉ của hyperlink.
 - Cột B là tên file. Không phân biệt hoa thường. Nếu **không có đuôi file** (vd `Report_0128`) thì khớp với
   file cùng tên ở mọi đuôi (`Report_0128.pdf`, `Report_0128.xlsx`…), nhưng chỉ khi không có file trùng đúng tên.
+  Tên có đuôi (`report.pdf`) chỉ khớp đúng tên đó. Ô số định dạng `0000` được hiểu là `0005`, không phải `5`.
+- Cột A phải là đường dẫn tuyệt đối (UNC, ổ đĩa, `file:`); chữ thường hoặc đường dẫn tương đối bị báo "Không phải đường dẫn thư mục".
 - Mặc định tìm cả trong thư mục con; mọi file trùng tên đều được lấy.
 
 ## Chạy
@@ -46,7 +48,9 @@ dòng hiện theo thời gian thực và có thể xuất CSV.
 - Không bao giờ **ghi đè** file trong thư mục đích. Chạy lại cùng danh sách thì file đã có (giống hệt) được báo
   "Đã có sẵn"; file khác nhưng trùng tên được lưu thành `tên (2).đuôi`. Tùy chọn "mỗi thư mục nguồn một thư
   mục con" tránh va chạm tên.
-- Máy chủ chỉ lắng nghe `127.0.0.1`, mỗi lần chạy có token riêng, và kiểm tra header Host.
+- Thư mục đích **không được nằm trong** (hoặc trùng) một thư mục nguồn, vì như vậy sẽ ghi vào server.
+- File CSV xuất ra vô hiệu hóa ô bắt đầu bằng `=`, `+`, `-`, `@` để Excel không chạy thành công thức.
+- Máy chủ chỉ lắng nghe `127.0.0.1`, mỗi lần chạy có token riêng, và kiểm tra header Host. (Token nằm trong trang web nên tool dành cho máy một người dùng.)
 - Chưa hỗ trợ liên kết web (SharePoint, Google Drive): dòng đó báo "Chưa hỗ trợ liên kết web".
 
 ## Phát triển

@@ -25,7 +25,7 @@ const EMPTY: RunView = {
 }
 
 // Starts a run and polls the server for progress. Results arrive in pieces (`since`), and are kept by
-// Excel row number, so a final re-sorted list from the server never shows a row twice.
+// Excel row number. The server's list is append-only, so `since` stays valid for the whole run.
 export function useRun() {
   const [view, setView] = React.useState<RunView>(EMPTY)
   const byRow = React.useRef(new Map<number, RowResult>())
@@ -51,14 +51,22 @@ export function useRun() {
   const poll = React.useCallback(async () => {
     if (polling.current) return
     polling.current = true
+    let failures = 0
     try {
       for (;;) {
-        const state = apply(await api.status(since.current))
-        if (state !== "running") break
+        try {
+          const state = apply(await api.status(since.current))
+          failures = 0
+          if (state !== "running") break
+        } catch (error) {
+          // A blip must not hide a run that is still going: give up only after three failures in a row.
+          if (++failures >= 3) {
+            setView((current) => ({ ...current, state: "failed", error: error instanceof ApiError ? error.code : "generic" }))
+            break
+          }
+        }
         await new Promise((resolve) => setTimeout(resolve, 500))
       }
-    } catch (error) {
-      setView((current) => ({ ...current, state: "failed", error: error instanceof ApiError ? error.code : "generic" }))
     } finally {
       polling.current = false
     }

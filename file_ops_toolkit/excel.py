@@ -48,7 +48,7 @@ def read_jobs(source: str | Path | BinaryIO) -> list[JobRow]:
             raise ExcelError("too_many_rows")
         cell_a, cell_b = sheet.cell(number, 1), sheet.cell(number, 2)
         raw_a = _text(cell_a.value)
-        raw_b = _text(cell_b.value)
+        raw_b = _name_text(cell_b)
         if not raw_a and not raw_b and cell_a.hyperlink is None:
             continue  # a blank row is not a job
         rows.append(_job(number, _address_text(cell_a, formula_sheet.cell(number, 1)), raw_b))
@@ -79,6 +79,14 @@ def _address_text(cell, formula_cell) -> str:
         match = _HYPERLINK_FORMULA.match(formula)
         if match:
             return match.group(1).replace('""', '"')
+    return text
+
+
+def _name_text(cell) -> str:
+    """Column B's text. A number formatted `0000` is stored as 5 but shown as 0005, and the file is named 0005."""
+    text = _text(cell.value)
+    if isinstance(cell.value, (int, float)) and re.fullmatch(r"0+", cell.number_format or ""):
+        return text.zfill(len(cell.number_format))
     return text
 
 

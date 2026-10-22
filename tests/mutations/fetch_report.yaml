@@ -1,0 +1,8 @@
+# Mutation manifest — see scripts/mutation_check.py
+target: file_ops_toolkit/report.py
+note: A file name from a share must not become a live formula in the Excel-opened CSV.
+mutations:
+- label: formula-looking cells are written raw
+  find: "    return \"'\" + cell if cell[:1] in"
+  replace: "    return cell if cell[:1] not in"
+  test: tests.test_fetch_server.ServerTests.test_the_csv_follows_the_requested_language_and_neutralises_formulas

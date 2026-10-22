@@ -93,7 +93,8 @@
     "missing_name": "B列にファイル名がありません",
     "invalid_name": "ファイル名が正しくありません",
     "unsupported_link": "Webリンクには対応していません",
-    "error": "コピーに失敗しました"
+    "error": "コピーに失敗しました",
+    "invalid_address": "フォルダーのパスではありません"
   },
   "errors": {
     "unreadable_workbook": "このファイルは.xlsxブックとして読み込めません。",
@@ -109,7 +110,8 @@
     "no_results": "まだ結果がありません。",
     "folder_unreadable": "このフォルダーを開けません。",
     "cannot_open": "ファイルを開けません：{message}",
-    "generic": "問題が発生しました。"
+    "generic": "問題が発生しました。",
+    "dest_inside_source": "保存先は元のフォルダーの外にしてください。サーバー上のフォルダーに書き込んでしまいます。"
   },
   "report": {
     "row": "行",

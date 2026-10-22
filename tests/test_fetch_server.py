@@ -1,3 +1,4 @@
+import http.client
 import json
 import threading
 import time
@@ -6,8 +7,10 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 from tempfile import TemporaryDirectory
+from unittest import mock
 
 from file_ops_toolkit import cli
+from file_ops_toolkit.runner import JobRun
 from file_ops_toolkit.server import make_server
 from tests.test_fetch_core import touch, workbook_bytes
 
@@ -99,6 +102,65 @@ class ServerTests(unittest.TestCase):
         bogus = json.dumps({"dest": str(self.root / "x"), "layout": "bogus"}).encode()
         self.assertEqual(self.call("/api/run", "POST", bogus)[0], 400)
         self.assertEqual(self.call("/api/run", "POST", b"not json")[0], 400)
+
+    def test_a_destination_inside_a_source_is_refused_and_since_must_be_a_number(self):
+        src = self.root / "srv"
+        touch(src / "a.txt")
+        self.call("/api/upload", "POST", workbook_bytes([(str(src), "a.txt")]).getvalue())
+        status, body, _ = self.call("/api/run", "POST", json.dumps({"dest": str(src / "out")}).encode())
+        self.assertEqual((status, json.loads(body)["error"]), (422, "dest_inside_source"))
+        self.assertFalse((src / "out").exists())
+        self.assertEqual(self.call("/api/status?since=abc")[0], 400)
+
+    def test_windows_spellings_in_a_static_path_are_refused(self):
+        self.assertEqual(self.call("/C:/x", token=False)[0], 403)
+        connection = http.client.HTTPConnection("127.0.0.1", self.server.server_address[1])
+        connection.request("GET", "/\\evilhost\\share\\x")  # a raw backslash, as a non-browser client may send
+        self.assertEqual(connection.getresponse().status, 403)
+        connection.close()
+
+    def test_a_started_run_cannot_be_replaced_by_an_upload(self):
+        entered, release, finish = threading.Event(), threading.Event(), threading.Event()
+        real_start = JobRun.start
+
+        def slow_start(run):  # holds the moment between "run created" and "run running" open
+            entered.set()
+            release.wait(10)
+            real_start(run)
+
+        src = self.root / "srv"
+        touch(src / "a.txt")
+        sheet = workbook_bytes([(str(src), "a.txt")]).getvalue()
+        self.call("/api/upload", "POST", sheet)
+        outcome = {}
+        with mock.patch.object(JobRun, "start", slow_start), \
+                mock.patch("file_ops_toolkit.runner.run_job", lambda *a, **k: finish.wait(10)):
+            starter = threading.Thread(target=lambda: outcome.update(
+                run=self.call("/api/run", "POST", json.dumps({"dest": str(self.root / "out")}).encode())))
+            starter.start()
+            self.assertTrue(entered.wait(10))
+            uploader = threading.Thread(target=lambda: outcome.update(up=self.call("/api/upload", "POST", sheet)))
+            uploader.start()
+            time.sleep(0.3)
+            release.set()
+            starter.join(10)
+            uploader.join(10)
+            self.assertEqual(outcome["run"][0], 200)
+            self.assertEqual((outcome["up"][0], json.loads(outcome["up"][1])["error"]), (409, "run_in_progress"))
+            self.assertEqual(self.call("/api/run", "POST", json.dumps({"dest": str(self.root / "o2")}).encode())[0], 409)
+            finish.set()
+            self.state.run.join(10)
+
+    def test_the_csv_follows_the_requested_language_and_neutralises_formulas(self):
+        src = self.root / "srv"
+        touch(src / "@cmd().txt")
+        self.call("/api/upload", "POST", workbook_bytes([(str(src), "@cmd().txt")]).getvalue())
+        self.call("/api/run", "POST", json.dumps({"dest": str(self.root / "out")}).encode())
+        self.state.run.join(10)
+        report = self.call("/api/report.csv?lang=vi")[1].decode("utf-8-sig")
+        self.assertIn("Đã sao chép", report)
+        self.assertIn("'@cmd().txt", report)
+        self.assertNotIn(",@cmd()", report)
 
     def test_folder_browser_lists_only_folders(self):
         (self.root / "d1").mkdir()

@@ -12,7 +12,7 @@ from file_ops_toolkit.copier import copy_without_overwrite
 from file_ops_toolkit.excel import ExcelError, JobRow, read_jobs
 from file_ops_toolkit.finder import FolderError, find_matches, scan_folder
 from file_ops_toolkit.paths import AddressError, clean_file_name, looks_like_path, normalize_address, safe_dir_name
-from file_ops_toolkit.runner import JobRun, Options, run_job
+from file_ops_toolkit.runner import DestinationError, JobRun, Options, run_job
 
 
 def touch(path: Path, content: str = "x", mtime: int | None = None) -> Path:
@@ -66,6 +66,12 @@ class AddressTests(unittest.TestCase):
                 normalize_address(raw)
             self.assertEqual(ctx.exception.code, code)
 
+    def test_text_that_is_not_an_absolute_path_is_refused(self):
+        for raw in (".", "reports/2026", "Open folder", "..\\x"):
+            with self.subTest(raw=raw), self.assertRaises(AddressError) as ctx:
+                normalize_address(raw)
+            self.assertEqual(ctx.exception.code, "invalid_address")
+
     def test_a_drive_letter_is_not_mistaken_for_a_url_scheme(self):
         self.assertEqual(normalize_address("D:\\reports"), "D:\\reports")
         self.assertTrue(looks_like_path("D:\\reports"))
@@ -104,6 +110,16 @@ class ExcelTests(unittest.TestCase):
     def test_numeric_file_names_lose_their_decimal_point(self):
         self.assertEqual(read_jobs(workbook_bytes([(r"\\srv\a", 501.0)]))[0].file_name, "501")
 
+    def test_a_number_formatted_with_leading_zeros_keeps_them(self):
+        wb = workbook_bytes([(r"\\srv\a", 5), (r"\\srv\a", 1.5)])
+        buffer = io.BytesIO()
+        from openpyxl import load_workbook
+        book = load_workbook(wb)
+        book.active["B2"].number_format = "0000"
+        book.save(buffer)
+        buffer.seek(0)
+        self.assertEqual([r.file_name for r in read_jobs(buffer)], ["0005", "1.5"])
+
     def test_not_a_workbook_and_empty_list_have_codes(self):
         with self.assertRaises(ExcelError) as ctx:
             read_jobs(io.BytesIO(b"not an xlsx"))
@@ -139,14 +155,20 @@ class FinderTests(unittest.TestCase):
         touch(self.root / "Report_v1.2.xlsx")
         self.assertEqual(len(find_matches(scan_folder(str(self.root)), "Report_v1.2")), 1)
 
-    def test_non_recursive_and_excluded_folder_and_lock_files(self):
+    def test_non_recursive_and_lock_files(self):
         touch(self.root / "a.txt")
         touch(self.root / "sub" / "a.txt")
-        touch(self.root / "out" / "a.txt")
         touch(self.root / "~$a.txt")
         self.assertEqual(len(find_matches(scan_folder(str(self.root), recursive=False), "a.txt")), 1)
-        self.assertEqual(len(find_matches(scan_folder(str(self.root), exclude=str(self.root / "out")), "a.txt")), 2)
+        self.assertEqual(len(find_matches(scan_folder(str(self.root)), "a.txt")), 2)
         self.assertEqual(find_matches(scan_folder(str(self.root)), "~$a.txt"), [])
+
+    def test_a_name_with_an_extension_never_matches_a_longer_name(self):
+        touch(self.root / "report.pdf.bak")
+        touch(self.root / "report.pdf")
+        self.assertEqual([Path(p).name for p in find_matches(scan_folder(str(self.root)), "report.pdf")], ["report.pdf"])
+        (self.root / "report.pdf").unlink()
+        self.assertEqual(find_matches(scan_folder(str(self.root)), "report.pdf"), [])
 
     def test_missing_folder_and_file_in_place_of_folder(self):
         with self.assertRaises(FolderError) as ctx:
@@ -233,14 +255,18 @@ class RunnerTests(unittest.TestCase):
         self.assertEqual(results[0].status, "already_copied")
         self.assertEqual(sorted(p.name for p in Path(self.dest).iterdir()), before)
 
-    def test_by_folder_layout_and_destination_inside_a_source_is_not_rescanned(self):
+    def test_by_folder_layout_puts_each_source_in_its_own_subfolder(self):
         run_job(self.jobs()[:2], self.dest, Options(layout="by_folder"))
         self.assertTrue((Path(self.dest) / "19QMC_0039" / "report_0501.xlsx").exists())
         self.assertTrue((Path(self.dest) / "19QMC_0042" / "report_0128.pdf").exists())
-        inside = str(self.a / "fetched")
-        run_job([JobRow(2, str(self.a), "report_0501.xlsx")], inside)
-        again = run_job([JobRow(2, str(self.a), "report_0501.xlsx")], inside)
-        self.assertEqual(len(again[0].files), 2)  # the copies in `fetched` were not found as extra matches
+
+    def test_a_destination_inside_or_equal_to_a_source_folder_is_refused_before_anything_is_written(self):
+        for dest in (str(self.a), str(self.a / "out"), str(self.a / "deep" / "x")):
+            with self.subTest(dest=dest), self.assertRaises(DestinationError) as ctx:
+                run_job(self.jobs(), dest)
+            self.assertEqual(ctx.exception.code, "dest_inside_source")
+        self.assertFalse((self.a / "out").exists())
+        run_job(self.jobs()[:1], str(self.root / "srv" / "19QMC_0039_other"))  # a sibling that shares a prefix is fine
 
     def test_sources_are_never_modified(self):
         before = {p: p.read_text() for p in (self.root / "srv").rglob("*") if p.is_file()}
@@ -275,6 +301,27 @@ class RunnerTests(unittest.TestCase):
         with mock.patch("file_ops_toolkit.runner.scan_folder", wraps=scan_folder) as scan:
             run_job(rows, self.dest)
         self.assertEqual(scan.call_count, 2)
+
+    def test_results_a_poller_already_holds_are_a_prefix_of_the_final_list(self):
+        seen = []
+
+        class Recording(JobRun):
+            def _record(self, result):
+                super()._record(result)
+                seen.append([r["row"] for r in self.snapshot()["results"]])
+
+        # rows 3 and 5 share a folder, rows 2 and 4 another: completion order differs from row order
+        rows = [JobRow(3, str(self.a), "report_0501.xlsx"), JobRow(2, str(self.b), "report_0128.pdf"),
+                JobRow(5, str(self.a), "nope"), JobRow(4, str(self.b), "nope")]
+        run = Recording(rows, self.dest, Options())
+        run.start()
+        run.join(10)
+        final = [r["row"] for r in run.snapshot()["results"]]
+        self.assertEqual(sorted(final), [2, 3, 4, 5])
+        for held in seen:
+            self.assertEqual(final[:len(held)], held)
+        for since in range(len(final) + 1):
+            self.assertEqual([r["row"] for r in run.snapshot(since)["results"]], final[since:])
 
     def test_job_run_reports_progress_and_final_state(self):
         run = JobRun(self.jobs(), self.dest, Options())

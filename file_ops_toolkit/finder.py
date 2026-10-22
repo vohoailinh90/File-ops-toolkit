@@ -3,10 +3,15 @@
 from __future__ import annotations
 
 import os
+import re
 import threading
 import unicodedata
 from dataclasses import dataclass, field
 from pathlib import Path
+
+
+# What counts as a file extension: a dot, a letter, then letters or digits (so ".pdf", but not the ".2" of "v1.2").
+_EXTENSION = re.compile(r"\.[A-Za-z][A-Za-z0-9]{0,7}")
 
 
 class FolderError(Exception):
@@ -30,18 +35,13 @@ class FolderIndex:
     unreadable: list[str] = field(default_factory=list)  # sub-folders that could not be opened
 
 
-def scan_folder(root: str, recursive: bool = True, exclude: str | None = None,
-                cancel: threading.Event | None = None) -> FolderIndex:
-    """Index the files under `root` once, so many rows pointing at it cost one walk of the share.
-
-    `exclude` is a directory never entered (the destination, so a re-run never re-finds its own copies).
-    """
+def scan_folder(root: str, recursive: bool = True, cancel: threading.Event | None = None) -> FolderIndex:
+    """Index the files under `root` once, so many rows pointing at it cost one walk of the share."""
     try:
         if not os.path.isdir(root):
             raise FolderError("folder_missing" if not os.path.exists(root) else "folder_not_a_directory")
     except OSError as exc:
         raise FolderError("folder_unreadable") from exc
-    skip = _key(exclude) if exclude else None
     index = FolderIndex(root=root)
     pending = [root]
     first = True
@@ -50,7 +50,7 @@ def scan_folder(root: str, recursive: bool = True, exclude: str | None = None,
             break
         folder = pending.pop()
         try:
-            _scan_dir(folder, index, pending, recursive, skip)
+            _scan_dir(folder, index, pending, recursive)
         except OSError as exc:
             if first:
                 raise FolderError("folder_unreadable") from exc
@@ -61,7 +61,7 @@ def scan_folder(root: str, recursive: bool = True, exclude: str | None = None,
     return index
 
 
-def _scan_dir(folder: str, index: FolderIndex, pending: list[str], recursive: bool, skip: str | None) -> None:
+def _scan_dir(folder: str, index: FolderIndex, pending: list[str], recursive: bool) -> None:
     """Add the files of one directory to the index and queue its sub-directories."""
     with os.scandir(folder) as entries:
         for entry in entries:
@@ -69,16 +69,12 @@ def _scan_dir(folder: str, index: FolderIndex, pending: list[str], recursive: bo
                 continue
             try:
                 if entry.is_dir(follow_symlinks=False):
-                    if recursive and _key(entry.path) != skip:
+                    if recursive:
                         pending.append(entry.path)
                 elif entry.is_file():
                     _add(index, entry.name, entry.path)
             except OSError:
                 index.unreadable.append(entry.path)
-
-
-def _key(path: str) -> str:
-    return os.path.normcase(os.path.abspath(path))
 
 
 def _add(index: FolderIndex, name: str, path: str) -> None:
@@ -91,7 +87,10 @@ def _add(index: FolderIndex, name: str, path: str) -> None:
 def find_matches(index: FolderIndex, name: str) -> list[str]:
     """Every file named `name`; when none is, every file whose name without extension is `name`."""
     key = fold(name)
-    return list(index.by_name.get(key) or index.by_stem.get(key) or [])
+    found = index.by_name.get(key)
+    if not found and not _EXTENSION.fullmatch(os.path.splitext(name)[1]):
+        found = index.by_stem.get(key)  # "Report_0128" finds Report_0128.pdf; "report.pdf" never finds report.pdf.bak
+    return list(found or [])
 
 
 def folder_key(path: str) -> str:

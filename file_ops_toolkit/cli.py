@@ -9,7 +9,7 @@ from pathlib import Path
 from .excel import ExcelError, read_jobs
 from .i18n import Translator
 from .report import report_csv
-from .runner import LAYOUTS, Options, run_job
+from .runner import LAYOUTS, DestinationError, Options, run_job
 
 LOCALES_DIR = Path(__file__).resolve().parent / "locales"
 
@@ -61,8 +61,12 @@ def _run(args: argparse.Namespace, tr: Translator) -> int:
     except OSError as exc:
         print(tr.t("errors.cannot_open", message=str(exc)), file=sys.stderr)
         return 2
-    results = run_job(rows, args.dest, Options(recursive=not args.no_recursive, layout=args.layout),
-                      on_result=lambda r: print(f"[{r.row}] {tr.t('status.' + r.status)} {r.file_name}"))
+    try:
+        results = run_job(rows, args.dest, Options(recursive=not args.no_recursive, layout=args.layout),
+                          on_result=lambda r: print(f"[{r.row}] {tr.t('status.' + r.status)} {r.file_name}"))
+    except DestinationError as exc:
+        print(tr.t("errors." + exc.code), file=sys.stderr)
+        return 2
     copied = sum(1 for r in results for f in r.files if f.outcome == "copied")
     problems = sum(1 for r in results if r.status not in ("copied", "already_copied"))
     print(tr.t("cli.summary", count=copied, rows=len(results), problems=problems))

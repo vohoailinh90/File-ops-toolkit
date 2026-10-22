@@ -26,3 +26,19 @@ mutations:
   find: "        if not dest or options.layout not in LAYOUTS:"
   replace: "        if not dest:"
   test: tests.test_fetch_server.ServerTests.test_bad_inputs_get_codes_not_crashes
+- label: the CSV language is limited to ja and en
+  find: "        tr.set_locale(lang if lang in tr.locales else \"en\")"
+  replace: "        tr.set_locale(lang if lang in (\"ja\", \"en\") else \"en\")"
+  test: tests.test_fetch_server.ServerTests.test_the_csv_follows_the_requested_language_and_neutralises_formulas
+- label: a run is started outside the server lock
+  find: "            run.start()  # inside the lock: no upload or second run can see this run as idle\n        self._json({\"ok\": True})"
+  replace: "        run.start()\n        self._json({\"ok\": True})"
+  test: tests.test_fetch_server.ServerTests.test_a_started_run_cannot_be_replaced_by_an_upload
+- label: a Windows spelling in a static path is resolved
+  find: "        if \":\" in relative or \"\\\\\" in relative:"
+  replace: "        if False:"
+  test: tests.test_fetch_server.ServerTests.test_windows_spellings_in_a_static_path_are_refused
+- label: a destination inside a source is accepted by the API
+  find: "                check_destination(self.state.rows, dest)\n"
+  replace: "                pass\n"
+  test: tests.test_fetch_server.ServerTests.test_a_destination_inside_a_source_is_refused_and_since_must_be_a_number

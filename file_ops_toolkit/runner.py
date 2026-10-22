@@ -47,12 +47,36 @@ class RowResult:
 ProgressCallback = Callable[[RowResult], None]
 
 
+class DestinationError(ValueError):
+    """The destination cannot be used. `code` is a catalog key under `errors`."""
+
+    def __init__(self, code: str):
+        super().__init__(code)
+        self.code = code
+
+
+def check_destination(rows: list[JobRow], dest: str) -> None:
+    """Refuse a destination inside (or equal to) a folder the list reads from: that would write into the source."""
+    target = _comparable(dest)
+    for job in rows:
+        if job.error:
+            continue
+        source = _comparable(job.address)
+        if target == source or target.startswith(source + os.sep):
+            raise DestinationError("dest_inside_source")
+
+
+def _comparable(path: str) -> str:
+    return os.path.normcase(os.path.abspath(path)).rstrip("\\/")
+
+
 def run_job(rows: list[JobRow], dest: str, options: Options = Options(),
             on_result: ProgressCallback | None = None,
             cancel: threading.Event | None = None) -> list[RowResult]:
     """Process every row; the result list is in Excel row order. A cancelled run keeps what it finished."""
     if options.layout not in LAYOUTS:
         raise ValueError(f"unknown layout {options.layout!r}")
+    check_destination(rows, dest)
     cancel = cancel or threading.Event()
     results: dict[int, RowResult] = {}
 
@@ -79,7 +103,7 @@ def _run_folder(group: list[JobRow], dest: str, options: Options,
                 finish: ProgressCallback, cancel: threading.Event) -> None:
     address = group[0].address
     try:
-        index = scan_folder(address, options.recursive, exclude=dest, cancel=cancel)
+        index = scan_folder(address, options.recursive, cancel=cancel)
     except FolderError as exc:
         for job in group:
             finish(RowResult(job.row, job.address, job.file_name, exc.code))
@@ -137,9 +161,8 @@ class JobRun:
     def _work(self) -> None:
         try:
             Path(self.dest).mkdir(parents=True, exist_ok=True)
-            final = run_job(self.rows, self.dest, self.options, self._record, self._cancel)
-            with self._lock:
-                self._results = final
+            run_job(self.rows, self.dest, self.options, self._record, self._cancel)
+            with self._lock:  # `_results` is append-only: a poller's `since` index must stay valid to the end
                 self.state = "cancelled" if self._cancel.is_set() else "done"
         except Exception as exc:  # surfaced to the UI as a failed run rather than a dead thread
             with self._lock:

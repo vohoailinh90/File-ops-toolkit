@@ -93,7 +93,8 @@
     "missing_name": "Cột B chưa có tên file",
     "invalid_name": "Tên file không hợp lệ",
     "unsupported_link": "Chưa hỗ trợ liên kết web",
-    "error": "Sao chép lỗi"
+    "error": "Sao chép lỗi",
+    "invalid_address": "Không phải đường dẫn thư mục"
   },
   "errors": {
     "unreadable_workbook": "Không đọc được file này như một workbook .xlsx.",
@@ -109,7 +110,8 @@
     "no_results": "Chưa có kết quả.",
     "folder_unreadable": "Không mở được thư mục này.",
     "cannot_open": "Không mở được file: {message}",
-    "generic": "Đã xảy ra lỗi."
+    "generic": "Đã xảy ra lỗi.",
+    "dest_inside_source": "Hãy chọn thư mục đích nằm ngoài các thư mục nguồn: nếu không sẽ ghi vào thư mục trên server."
   },
   "report": {
     "row": "Dòng",

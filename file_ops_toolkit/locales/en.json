@@ -93,7 +93,8 @@
     "missing_name": "No file name in column B",
     "invalid_name": "Invalid file name",
     "unsupported_link": "Web links are not supported",
-    "error": "Copy failed"
+    "error": "Copy failed",
+    "invalid_address": "Not a folder path"
   },
   "errors": {
     "unreadable_workbook": "This file cannot be read as an .xlsx workbook.",
@@ -109,7 +110,8 @@
     "no_results": "There are no results yet.",
     "folder_unreadable": "This folder cannot be opened.",
     "cannot_open": "Cannot open the file: {message}",
-    "generic": "Something went wrong."
+    "generic": "Something went wrong.",
+    "dest_inside_source": "Choose a destination outside the source folders: it would write into the server folder."
   },
   "report": {
     "row": "Row",

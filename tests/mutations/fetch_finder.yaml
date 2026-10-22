@@ -7,26 +7,26 @@ mutations:
   replace: "    return unicodedata.normalize(\"NFC\", name)"
   test: tests.test_fetch_core.FinderTests.test_exact_name_matches_without_case_and_recurses
 - label: a name without extension never matches by stem
-  find: "    return list(index.by_name.get(key) or index.by_stem.get(key) or [])"
-  replace: "    return list(index.by_name.get(key) or [])"
+  find: "        found = index.by_stem.get(key)"
+  replace: "        found = []"
   test: tests.test_fetch_core.FinderTests.test_name_without_extension_matches_any_extension_only_when_no_exact_file
 - label: the stem is added to the exact matches instead of replacing them as a fallback
-  find: "    return list(index.by_name.get(key) or index.by_stem.get(key) or [])"
-  replace: "    return list(index.by_name.get(key, []) + index.by_stem.get(key, []))"
+  find: "    if not found and not _EXTENSION.fullmatch(os.path.splitext(name)[1]):"
+  replace: "    if not _EXTENSION.fullmatch(os.path.splitext(name)[1]):"
   test: tests.test_fetch_core.FinderTests.test_name_without_extension_matches_any_extension_only_when_no_exact_file
 - label: sub-folders are always searched
-  find: "                    if recursive and _key(entry.path) != skip:"
-  replace: "                    if _key(entry.path) != skip:"
-  test: tests.test_fetch_core.FinderTests.test_non_recursive_and_excluded_folder_and_lock_files
-- label: the destination folder is scanned as a source
-  find: "                    if recursive and _key(entry.path) != skip:"
-  replace: "                    if recursive:"
-  test: tests.test_fetch_core.FinderTests.test_non_recursive_and_excluded_folder_and_lock_files
+  find: "                    if recursive:"
+  replace: "                    if True:"
+  test: tests.test_fetch_core.FinderTests.test_non_recursive_and_lock_files
 - label: Office lock files are matched
   find: "            if entry.name.startswith(\"~$\"):"
   replace: "            if False:"
-  test: tests.test_fetch_core.FinderTests.test_non_recursive_and_excluded_folder_and_lock_files
+  test: tests.test_fetch_core.FinderTests.test_non_recursive_and_lock_files
 - label: a missing folder is not reported
   find: "            raise FolderError(\"folder_missing\" if not os.path.exists(root) else \"folder_not_a_directory\")"
   replace: "            raise FolderError(\"folder_not_a_directory\")"
   test: tests.test_fetch_core.FinderTests.test_missing_folder_and_file_in_place_of_folder
+- label: a name with an extension falls back to the stem
+  find: "    if not found and not _EXTENSION.fullmatch(os.path.splitext(name)[1]):"
+  replace: "    if not found:"
+  test: tests.test_fetch_core.FinderTests.test_a_name_with_an_extension_never_matches_a_longer_name

@@ -6,6 +6,7 @@ Pure string work: nothing here touches the disk, so the Windows forms (UNC share
 
 from __future__ import annotations
 
+import os
 import re
 from urllib.parse import unquote
 
@@ -39,6 +40,8 @@ def normalize_address(raw: str) -> str:
         raise AddressError("unsupported_link")
     if s.startswith("//") and not s.startswith("///"):
         s = s.replace("/", "\\")  # //server/share written with forward slashes
+    if not (looks_like_path(s) or os.path.isabs(s)):
+        raise AddressError("invalid_address")  # plain text or a relative path would be read against the app's folder
     return s
 
 

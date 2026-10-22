@@ -18,3 +18,7 @@ mutations:
   find: "    rest = unquote(rest)\n"
   replace: ""
   test: tests.test_fetch_core.AddressTests.test_file_urls_become_windows_paths
+- label: relative text is accepted as a folder
+  find: "    if not (looks_like_path(s) or os.path.isabs(s)):"
+  replace: "    if False:"
+  test: tests.test_fetch_core.AddressTests.test_text_that_is_not_an_absolute_path_is_refused

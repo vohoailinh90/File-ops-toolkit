@@ -16,6 +16,8 @@ server folders to a folder the user picks.
 These are product invariants. Changing one is a T3 change that needs the owner's explicit approval.
 
 - **Never modify or delete anything on the source share.** The source is only read.
+- **The destination is never inside a source folder** (`check_destination`), so a run cannot write into
+  the share it reads.
 - **Never overwrite a file in the destination.** An identical earlier copy is reported; a different file
   with the same name gets ` (2)`, ` (3)`… (`copier.py`).
 - **Column B is untrusted.** A name with a path separator is rejected; matching is by string equality,

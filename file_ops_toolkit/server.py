@@ -22,7 +22,7 @@ from urllib.parse import parse_qs, unquote, urlparse
 from .excel import ExcelError, JobRow, read_jobs
 from .i18n import Translator
 from .report import report_csv
-from .runner import LAYOUTS, JobRun, Options, default_destination
+from .runner import LAYOUTS, DestinationError, JobRun, Options, check_destination, default_destination
 
 WEB_DIST = Path(__file__).resolve().parent.parent / "web" / "dist"
 LOCALES_DIR = Path(__file__).resolve().parent / "locales"
@@ -108,6 +108,7 @@ class _Handler(BaseHTTPRequestHandler):
         except ValueError:
             length = -1
         if length < 0 or length > limit:
+            self.close_connection = True  # the body is not read, so the connection cannot be reused
             self._error(HTTPStatus.REQUEST_ENTITY_TOO_LARGE, "too_large")
             return None
         return self.rfile.read(length)
@@ -123,7 +124,11 @@ class _Handler(BaseHTTPRequestHandler):
             return self._error(HTTPStatus.UNAUTHORIZED, "bad_token")
         query = parse_qs(url.query)
         if url.path == "/api/status":
-            return self._status(int(query.get("since", ["0"])[0] or 0))
+            try:
+                since = int(query.get("since", ["0"])[0] or 0)
+            except ValueError:
+                return self._error(HTTPStatus.BAD_REQUEST, "bad_request")
+            return self._status(since)
         if url.path == "/api/fs":
             return self._fs(query.get("path", [""])[0])
         if url.path == "/api/report.csv":
@@ -154,6 +159,8 @@ class _Handler(BaseHTTPRequestHandler):
     def _static(self, request_path: str) -> None:
         root = self.state.web_dist.resolve()
         relative = request_path.lstrip("/") or "index.html"
+        if ":" in relative or "\\" in relative:  # a Windows drive or UNC spelling: never resolve it
+            return self._error(HTTPStatus.FORBIDDEN, "forbidden")
         target = (root / relative).resolve()
         if root not in target.parents and target != root:
             return self._error(HTTPStatus.FORBIDDEN, "forbidden")
@@ -205,9 +212,13 @@ class _Handler(BaseHTTPRequestHandler):
                 return self._error(HTTPStatus.CONFLICT, "no_list")
             if self.state.run is not None and self.state.run.state == "running":
                 return self._error(HTTPStatus.CONFLICT, "run_in_progress")
+            try:
+                check_destination(self.state.rows, dest)
+            except DestinationError as exc:
+                return self._error(HTTPStatus.UNPROCESSABLE_ENTITY, exc.code)
             run = JobRun(self.state.rows, dest, options)
             self.state.run = run
-        run.start()
+            run.start()  # inside the lock: no upload or second run can see this run as idle
         self._json({"ok": True})
 
     def _status(self, since: int) -> None:
@@ -237,7 +248,8 @@ class _Handler(BaseHTTPRequestHandler):
             run = self.state.run
         if run is None:
             return self._error(HTTPStatus.CONFLICT, "no_results")
-        tr = Translator.from_dir(LOCALES_DIR, locale=lang if lang in ("ja", "en") else "en")
+        tr = Translator.from_dir(LOCALES_DIR)
+        tr.set_locale(lang if lang in tr.locales else "en")
         self._send(200, report_csv(run.results(), tr), "text/csv; charset=utf-8",
                    {"Content-Disposition": 'attachment; filename="fetch-report.csv"'})
 

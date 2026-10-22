@@ -55,7 +55,8 @@ export function RunCard({
           {running && t("run.running")}
           {view.state === "done" && t("run.done")}
           {view.state === "cancelled" && t("run.cancelled")}
-          {view.state === "failed" && t("run.failed", { message: view.error })}
+          {view.state === "failed" &&
+            t("run.failed", { message: /^[a-z_]+$/.test(view.error) ? t(`errors.${view.error}`) : view.error })}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-5">

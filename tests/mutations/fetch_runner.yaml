@@ -6,14 +6,10 @@ mutations:
   find: "            runnable.setdefault(folder_key(job.address), []).append(job)"
   replace: "            runnable.setdefault(str(job.row), []).append(job)"
   test: tests.test_fetch_core.RunnerTests.test_a_folder_shared_by_many_rows_is_scanned_once
-- label: the destination is scanned as a source
-  find: "        index = scan_folder(address, options.recursive, exclude=dest, cancel=cancel)"
-  replace: "        index = scan_folder(address, options.recursive, cancel=cancel)"
-  test: tests.test_fetch_core.RunnerTests.test_by_folder_layout_and_destination_inside_a_source_is_not_rescanned
 - label: by_folder layout copies flat
   find: "    target = str(Path(dest) / safe_dir_name(display_name(address))) if options.layout == \"by_folder\" else dest"
   replace: "    target = dest"
-  test: tests.test_fetch_core.RunnerTests.test_by_folder_layout_and_destination_inside_a_source_is_not_rescanned
+  test: tests.test_fetch_core.RunnerTests.test_by_folder_layout_puts_each_source_in_its_own_subfolder
 - label: a failed copy is reported as copied
   find: "        result.status = \"error\"\n"
   replace: "        result.status = \"copied\"\n"
@@ -26,3 +22,11 @@ mutations:
   find: "    if options.layout not in LAYOUTS:\n        raise ValueError"
   replace: "    if False:\n        raise ValueError"
   test: tests.test_fetch_core.RunnerTests.test_job_run_reports_progress_and_final_state
+- label: a destination inside a source folder is accepted
+  find: "        if target == source or target.startswith(source + os.sep):"
+  replace: "        if False:"
+  test: tests.test_fetch_core.RunnerTests.test_a_destination_inside_or_equal_to_a_source_folder_is_refused_before_anything_is_written
+- label: the final result list is re-ordered under a poller
+  find: "            run_job(self.rows, self.dest, self.options, self._record, self._cancel)\n"
+  replace: "            self._results = run_job(self.rows, self.dest, self.options, self._record, self._cancel)[::-1]\n"
+  test: tests.test_fetch_core.RunnerTests.test_results_a_poller_already_holds_are_a_prefix_of_the_final_list

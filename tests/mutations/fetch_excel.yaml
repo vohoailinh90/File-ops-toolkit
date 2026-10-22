@@ -18,3 +18,7 @@ mutations:
   find: "        return JobRow(number, \"\", name_text.strip(), exc.code)"
   replace: "        raise"
   test: tests.test_fetch_core.ExcelTests.test_invalid_rows_are_kept_with_their_reason
+- label: leading zeros of a zero-formatted number are lost
+  find: "        return text.zfill(len(cell.number_format))"
+  replace: "        return text"
+  test: tests.test_fetch_core.ExcelTests.test_a_number_formatted_with_leading_zeros_keeps_them
