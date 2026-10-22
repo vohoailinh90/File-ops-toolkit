@@ -83,6 +83,18 @@ export function useRun() {
     [poll],
   )
 
+  // A reloaded page asks the server what it is doing: a run in progress shows its progress and Cancel again,
+  // and a finished run shows its results, instead of the page believing nothing is happening.
+  React.useEffect(() => {
+    void api.status(0).then(
+      (status) => {
+        if (status.state === "idle") return
+        if (apply(status) === "running") void poll()
+      },
+      () => undefined,
+    )
+  }, [apply, poll])
+
   const cancel = React.useCallback(() => api.cancel(), [])
   const reset = React.useCallback(() => {
     byRow.current = new Map()

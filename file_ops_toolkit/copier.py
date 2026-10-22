@@ -9,6 +9,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 MAX_RENAMES = 999
+MAX_NAME_BYTES = 255  # the common component limit (NTFS counts characters, ext4 bytes; bytes is the stricter)
 TEMP_PREFIX = ".fetch-"  # short and fixed: a long file name must not make the temporary name too long
 
 
@@ -67,10 +68,16 @@ def _copy_metadata(source: Path, final: Path) -> None:
 
 
 def _numbered(name: str, number: int) -> str:
+    """`name (2).ext`, with the stem shortened so the whole name still fits the filesystem's component limit."""
     stem, dot, ext = name.rpartition(".")
     if not dot or not stem:
-        return f"{name} ({number})"
-    return f"{stem} ({number}).{ext}"
+        stem, extension = name, ""
+    else:
+        extension = "." + ext
+    suffix = f" ({number})"
+    room = MAX_NAME_BYTES - len((suffix + extension).encode("utf-8"))
+    fitted = stem.encode("utf-8")[:max(room, 1)].decode("utf-8", "ignore")  # never cut a character in half
+    return f"{fitted}{suffix}{extension}"
 
 
 def _same_file(source: Path, candidate: Path, src_stat: os.stat_result) -> bool:

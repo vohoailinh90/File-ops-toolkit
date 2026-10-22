@@ -274,6 +274,27 @@ class CopierTests(unittest.TestCase):
         self.assertFalse(out.already_there)
         self.assertEqual(sorted(p.read_text() for p in (self.root / "dest").iterdir()), ["new", "old"])
 
+    def test_a_numbered_name_is_shortened_to_fit_the_component_limit(self):
+        long_name = "n" * 250 + ".txt"  # 254 bytes: valid, but " (2)" would make it 258
+        src = touch(self.root / "src" / long_name, "new one", mtime=1_700_000_000)
+        touch(self.root / "dest" / long_name, "someone else's file", mtime=1_600_000_000)
+        out = copy_without_overwrite(str(src), str(self.root / "dest"))
+        name = Path(out.dest).name
+        self.assertLessEqual(len(name.encode("utf-8")), 255)
+        self.assertTrue(name.endswith(" (2).txt"))
+        self.assertEqual(Path(out.dest).read_text(), "new one")
+        self.assertEqual((self.root / "dest" / long_name).read_text(), "someone else's file")
+
+    def test_numbering_never_cuts_a_character_in_half(self):
+        from file_ops_toolkit.copier import _numbered
+        name = "あ" * 84 + ".txt"  # 252 + 4 bytes
+        fitted = _numbered(name, 2)
+        self.assertLessEqual(len(fitted.encode("utf-8")), 255)
+        self.assertEqual(_numbered("a.txt", 2), "a (2).txt")
+        self.assertEqual(_numbered("README", 3), "README (3)")
+        self.assertEqual(_numbered(".hidden", 2), ".hidden (2)")
+        fitted.encode("utf-8").decode("utf-8")
+
     def test_a_failed_copy_leaves_no_partial_file(self):
         src = touch(self.root / "src" / "a.txt", "hello")
         with mock.patch("file_ops_toolkit.copier.shutil.copyfileobj", side_effect=OSError("disk full")):

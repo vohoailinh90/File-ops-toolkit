@@ -46,3 +46,7 @@ mutations:
   find: "        return _same_bytes(source, candidate)\n"
   replace: "        return __import__(\"filecmp\").cmp(source, candidate, shallow=False)\n"
   test: tests.test_fetch_core.CopierTests.test_a_source_changed_in_place_with_the_same_size_and_time_is_not_taken_for_the_old_copy
+- label: numbered names are not shortened to the component limit
+  find: "    fitted = stem.encode(\"utf-8\")[:max(room, 1)].decode(\"utf-8\", \"ignore\")  # never cut a character in half\n"
+  replace: "    fitted = stem\n"
+  test: tests.test_fetch_core.CopierTests.test_a_numbered_name_is_shortened_to_fit_the_component_limit
