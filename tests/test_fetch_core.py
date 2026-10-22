@@ -1,6 +1,7 @@
 import io
 import ntpath
 import os
+import stat
 import threading
 import unittest
 from pathlib import Path
@@ -243,6 +244,35 @@ class CopierTests(unittest.TestCase):
         src = touch(self.root / "src" / ("n" * 240 + ".txt"), "long name")
         out = copy_without_overwrite(str(src), str(self.root / "dest"))
         self.assertEqual(Path(out.dest).read_text(), "long name")
+
+    def test_a_read_only_source_does_not_leave_its_temporary_file_undeletable(self):
+        src = touch(self.root / "src" / "a.txt", "locked", mtime=1_700_000_000)
+        src.chmod(0o444)
+        real_unlink = os.unlink
+
+        def windows_like_unlink(path, *args, **kwargs):  # Windows refuses to delete a read-only file
+            if not os.stat(path).st_mode & stat.S_IWUSR:
+                raise PermissionError(13, "Access is denied")
+            return real_unlink(path, *args, **kwargs)
+
+        with mock.patch("file_ops_toolkit.copier.os.unlink", windows_like_unlink):
+            out = copy_without_overwrite(str(src), str(self.root / "dest"))
+        self.assertEqual(sorted(p.name for p in (self.root / "dest").iterdir()), ["a.txt"])
+        final = Path(out.dest).stat()
+        self.assertFalse(final.st_mode & stat.S_IWUSR)  # the source's mode still reaches the copy
+        self.assertEqual(int(final.st_mtime), 1_700_000_000)
+        Path(out.dest).chmod(0o644)
+        src.chmod(0o644)
+
+    def test_a_source_changed_in_place_with_the_same_size_and_time_is_not_taken_for_the_old_copy(self):
+        src = touch(self.root / "src" / "a.txt", "old", mtime=1_700_000_000)
+        dest = str(self.root / "dest")
+        copy_without_overwrite(str(src), dest)
+        self.assertTrue(copy_without_overwrite(str(src), dest).already_there)  # primes any comparison cache
+        touch(src, "new", mtime=1_700_000_000)
+        out = copy_without_overwrite(str(src), dest)
+        self.assertFalse(out.already_there)
+        self.assertEqual(sorted(p.read_text() for p in (self.root / "dest").iterdir()), ["new", "old"])
 
     def test_a_failed_copy_leaves_no_partial_file(self):
         src = touch(self.root / "src" / "a.txt", "hello")

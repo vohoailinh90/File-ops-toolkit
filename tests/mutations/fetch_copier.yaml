@@ -7,8 +7,8 @@ mutations:
   replace: "            if True:"
   test: tests.test_fetch_core.CopierTests.test_a_different_file_with_the_same_name_is_never_overwritten
 - label: size and time alone decide that a file is the earlier copy
-  find: "        return filecmp.cmp(source, candidate, shallow=False)"
-  replace: "        return True"
+  find: "        return _same_bytes(source, candidate)\n"
+  replace: "        return True\n"
   test: tests.test_fetch_core.RunnerTests.test_every_row_gets_a_status_and_all_matches_are_copied
 - label: an identical earlier copy is written again under a new name
   find: "                return CopyOutcome(str(candidate), True)"
@@ -19,8 +19,8 @@ mutations:
   replace: "        except BaseException:\n            raise"
   test: tests.test_fetch_core.CopierTests.test_a_failed_copy_leaves_no_partial_file
 - label: the copy does not keep the source's modification time
-  find: "            shutil.copystat(source, part)\n"
-  replace: ""
+  find: "        shutil.copystat(source, final)\n"
+  replace: "        pass\n"
   test: tests.test_fetch_core.CopierTests.test_copy_keeps_content_and_leaves_the_source_alone
 - label: the temporary file is a predictable name that can belong to someone else
   find: "            fd, part_name = tempfile.mkstemp(dir=target_dir, prefix=TEMP_PREFIX, suffix=\".part\")"
@@ -30,11 +30,19 @@ mutations:
   find: "    writer = open(final, \"xb\")"
   replace: "    writer = open(final, \"wb+\")"
   test: tests.test_fetch_core.CopierTests.test_without_hard_links_the_final_name_is_still_never_replaced
-- label: the fallback does not set the copy's modification time
-  find: "        shutil.copystat(part, final)\n"
-  replace: ""
+- label: the copy does not get the source's modification time
+  find: "        shutil.copystat(source, final)\n"
+  replace: "        pass\n"
   test: tests.test_fetch_core.CopierTests.test_without_hard_links_a_second_run_still_recognises_the_first_copy
 - label: the temporary file name embeds the whole target name
   find: "prefix=TEMP_PREFIX, suffix="
   replace: "prefix=candidate.name + \".\", suffix="
   test: tests.test_fetch_core.CopierTests.test_a_file_name_near_the_length_limit_can_be_copied
+- label: the source's metadata is applied to the temporary file before it is published
+  find: "            _publish(part, candidate)  # the temporary name is gone when this returns\n"
+  replace: "            shutil.copystat(source, part)\n            _publish(part, candidate)  # the temporary name is gone when this returns\n"
+  test: tests.test_fetch_core.CopierTests.test_a_read_only_source_does_not_leave_its_temporary_file_undeletable
+- label: contents are compared through a cache that ignores an in-place change
+  find: "        return _same_bytes(source, candidate)\n"
+  replace: "        return __import__(\"filecmp\").cmp(source, candidate, shallow=False)\n"
+  test: tests.test_fetch_core.CopierTests.test_a_source_changed_in_place_with_the_same_size_and_time_is_not_taken_for_the_old_copy

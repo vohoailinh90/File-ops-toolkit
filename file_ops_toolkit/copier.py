@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import filecmp
 import os
 import shutil
 import tempfile
@@ -42,16 +41,29 @@ def copy_without_overwrite(src: str, dest_dir: str) -> CopyOutcome:
             part = Path(part_name)
             with os.fdopen(fd, "wb") as writer, open(source, "rb") as reader:
                 shutil.copyfileobj(reader, writer, length=1024 * 1024)
-            shutil.copystat(source, part)
-            _publish(part, candidate)
+            _publish(part, candidate)  # the temporary name is gone when this returns
         except FileExistsError:
             _discard(part)
             continue  # another process took the name between the check and the write
         except BaseException:
             _discard(part)
             raise
+        _copy_metadata(source, candidate)
         return CopyOutcome(str(candidate), False)
     raise FileExistsError(f"no free name for {source.name} in {target_dir}")
+
+
+def _copy_metadata(source: Path, final: Path) -> None:
+    """Give the published copy the source's times and mode, after the temporary name is gone.
+
+    Done last on purpose: on Windows a read-only attribute on the temporary file would stop it being deleted.
+    The content is already complete and published, so a failure here only costs the "already copied" match
+    on a later run (it would be numbered), and is not worth reporting the whole copy as an error.
+    """
+    try:
+        shutil.copystat(source, final)
+    except OSError:
+        pass
 
 
 def _numbered(name: str, number: int) -> str:
@@ -67,9 +79,20 @@ def _same_file(source: Path, candidate: Path, src_stat: os.stat_result) -> bool:
         found = candidate.stat()
         if found.st_size != src_stat.st_size or int(found.st_mtime) != int(src_stat.st_mtime):
             return False
-        return filecmp.cmp(source, candidate, shallow=False)
+        return _same_bytes(source, candidate)
     except OSError:
         return False
+
+
+def _same_bytes(first: Path, second: Path) -> bool:
+    """Compare contents by reading both: filecmp.cmp would answer from its cache for an unchanged size and time."""
+    with open(first, "rb") as one, open(second, "rb") as two:
+        while True:
+            left, right = one.read(1024 * 1024), two.read(1024 * 1024)
+            if left != right:
+                return False
+            if not left:
+                return True
 
 
 def _publish(part: Path, final: Path) -> None:
@@ -97,7 +120,6 @@ def _fill_exclusively(part: Path, final: Path) -> None:
     try:
         with writer, open(part, "rb") as reader:  # closed (flushed) before the timestamps are set
             shutil.copyfileobj(reader, writer, length=1024 * 1024)
-        shutil.copystat(part, final)
     except BaseException:
         _discard(final)
         raise
