@@ -7,8 +7,8 @@ mutations:
   replace: "    if \"\\x00\" in name or name in (\".\", \"..\"):"
   test: tests.test_fetch_core.AddressTests.test_file_names_with_separators_or_parent_references_are_invalid
 - label: web links are treated as folders
-  find: "    if _SCHEME.match(s):\n        raise AddressError(\"unsupported_link\")"
-  replace: "    if False:\n        raise AddressError(\"unsupported_link\")"
+  find: "    elif _SCHEME.match(s):\n        raise AddressError(\"unsupported_link\")"
+  replace: "    elif False:\n        raise AddressError(\"unsupported_link\")"
   test: tests.test_fetch_core.AddressTests.test_web_links_and_blanks_are_refused_with_a_code
 - label: a file://server/share link is not turned into a UNC path
   find: "        return \"\\\\\\\\\" + host + \"\\\\\" + tail.replace(\"/\", \"\\\\\")  # file://server/share/dir"
@@ -19,6 +19,10 @@ mutations:
   replace: ""
   test: tests.test_fetch_core.AddressTests.test_file_urls_become_windows_paths
 - label: relative text is accepted as a folder
-  find: "    if not (looks_like_path(s) or os.path.isabs(s)):"
+  find: "    if not _is_absolute(s):"
   replace: "    if False:"
+  test: tests.test_fetch_core.AddressTests.test_text_that_is_not_an_absolute_path_is_refused
+- label: "a decoded file: link skips the absolute-path check"
+  find: "        s = _from_file_url(s)\n"
+  replace: "        return _from_file_url(s)\n"
   test: tests.test_fetch_core.AddressTests.test_text_that_is_not_an_absolute_path_is_refused

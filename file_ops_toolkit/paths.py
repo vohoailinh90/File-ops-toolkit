@@ -35,14 +35,18 @@ def normalize_address(raw: str) -> str:
     if not s:
         raise AddressError("missing_address")
     if s.lower().startswith("file:"):
-        return _from_file_url(s)
-    if _SCHEME.match(s):
+        s = _from_file_url(s)
+    elif _SCHEME.match(s):
         raise AddressError("unsupported_link")
     if s.startswith("//") and not s.startswith("///"):
         s = s.replace("/", "\\")  # //server/share written with forward slashes
-    if not (looks_like_path(s) or os.path.isabs(s)):
+    if not _is_absolute(s):  # also for a decoded file: link: `file:reports` must not mean ./reports
         raise AddressError("invalid_address")  # plain text or a relative path would be read against the app's folder
     return s
+
+
+def _is_absolute(path: str) -> bool:
+    return path.startswith("\\\\") or bool(_DRIVE.match(path)) or os.path.isabs(path)
 
 
 def _from_file_url(url: str) -> str:

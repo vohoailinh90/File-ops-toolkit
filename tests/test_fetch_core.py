@@ -69,7 +69,7 @@ class AddressTests(unittest.TestCase):
             self.assertEqual(ctx.exception.code, code)
 
     def test_text_that_is_not_an_absolute_path_is_refused(self):
-        for raw in (".", "reports/2026", "Open folder", "..\\x"):
+        for raw in (".", "reports/2026", "Open folder", "..\\x", "file:reports", "file:./x", "file:file:reports"):
             with self.subTest(raw=raw), self.assertRaises(AddressError) as ctx:
                 normalize_address(raw)
             self.assertEqual(ctx.exception.code, "invalid_address")
