@@ -10,6 +10,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 MAX_RENAMES = 999
+TEMP_PREFIX = ".fetch-"  # short and fixed: a long file name must not make the temporary name too long
 
 
 @dataclass(frozen=True)
@@ -37,7 +38,7 @@ def copy_without_overwrite(src: str, dest_dir: str) -> CopyOutcome:
             continue
         part: Path | None = None  # set only once this call has created it, so only this call ever deletes it
         try:
-            fd, part_name = tempfile.mkstemp(dir=target_dir, prefix=candidate.name + ".", suffix=".part")
+            fd, part_name = tempfile.mkstemp(dir=target_dir, prefix=TEMP_PREFIX, suffix=".part")
             part = Path(part_name)
             with os.fdopen(fd, "wb") as writer, open(source, "rb") as reader:
                 shutil.copyfileobj(reader, writer, length=1024 * 1024)
@@ -92,15 +93,14 @@ def _publish(part: Path, final: Path) -> None:
 
 
 def _fill_exclusively(part: Path, final: Path) -> None:
-    with open(final, "xb") as writer:  # ours from here on: a failure below removes it again
-        try:
-            with open(part, "rb") as reader:
-                shutil.copyfileobj(reader, writer, length=1024 * 1024)
-            shutil.copystat(part, final)
-        except BaseException:
-            writer.close()
-            _discard(final)
-            raise
+    writer = open(final, "xb")  # ours from here on: a failure below removes it again
+    try:
+        with writer, open(part, "rb") as reader:  # closed (flushed) before the timestamps are set
+            shutil.copyfileobj(reader, writer, length=1024 * 1024)
+        shutil.copystat(part, final)
+    except BaseException:
+        _discard(final)
+        raise
     os.unlink(part)
 
 

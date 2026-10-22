@@ -23,10 +23,18 @@ mutations:
   replace: ""
   test: tests.test_fetch_core.CopierTests.test_copy_keeps_content_and_leaves_the_source_alone
 - label: the temporary file is a predictable name that can belong to someone else
-  find: "            fd, part_name = tempfile.mkstemp(dir=target_dir, prefix=candidate.name + \".\", suffix=\".part\")"
+  find: "            fd, part_name = tempfile.mkstemp(dir=target_dir, prefix=TEMP_PREFIX, suffix=\".part\")"
   replace: "            part_name = str(candidate) + \".part\"\n            fd = os.open(part_name, os.O_CREAT | os.O_WRONLY | os.O_TRUNC)"
   test: tests.test_fetch_core.CopierTests.test_an_existing_part_file_of_the_user_is_never_deleted_or_overwritten
 - label: without hard links the final file is created with replacement
-  find: "    with open(final, \"xb\") as writer:"
-  replace: "    with open(final, \"wb+\") as writer:"
+  find: "    writer = open(final, \"xb\")"
+  replace: "    writer = open(final, \"wb+\")"
   test: tests.test_fetch_core.CopierTests.test_without_hard_links_the_final_name_is_still_never_replaced
+- label: the fallback does not set the copy's modification time
+  find: "        shutil.copystat(part, final)\n"
+  replace: ""
+  test: tests.test_fetch_core.CopierTests.test_without_hard_links_a_second_run_still_recognises_the_first_copy
+- label: the temporary file name embeds the whole target name
+  find: "prefix=TEMP_PREFIX, suffix="
+  replace: "prefix=candidate.name + \".\", suffix="
+  test: tests.test_fetch_core.CopierTests.test_a_file_name_near_the_length_limit_can_be_copied

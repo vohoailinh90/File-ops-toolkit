@@ -230,6 +230,20 @@ class CopierTests(unittest.TestCase):
         self.assertEqual(final.read_text(), "new")
         self.assertFalse(part.exists())
 
+    def test_without_hard_links_a_second_run_still_recognises_the_first_copy(self):
+        src = touch(self.root / "src" / "a.txt", "hello", mtime=1_700_000_000)
+        with mock.patch("file_ops_toolkit.copier.os.link", side_effect=OSError("no hard links here")):
+            first = copy_without_overwrite(str(src), str(self.root / "dest"))
+            again = copy_without_overwrite(str(src), str(self.root / "dest"))
+        self.assertEqual(int(Path(first.dest).stat().st_mtime), 1_700_000_000)
+        self.assertTrue(again.already_there)
+        self.assertEqual(len(list((self.root / "dest").iterdir())), 1)
+
+    def test_a_file_name_near_the_length_limit_can_be_copied(self):
+        src = touch(self.root / "src" / ("n" * 240 + ".txt"), "long name")
+        out = copy_without_overwrite(str(src), str(self.root / "dest"))
+        self.assertEqual(Path(out.dest).read_text(), "long name")
+
     def test_a_failed_copy_leaves_no_partial_file(self):
         src = touch(self.root / "src" / "a.txt", "hello")
         with mock.patch("file_ops_toolkit.copier.shutil.copyfileobj", side_effect=OSError("disk full")):
