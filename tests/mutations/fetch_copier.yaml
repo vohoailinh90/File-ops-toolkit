@@ -26,3 +26,7 @@ mutations:
   find: "            fd, part_name = tempfile.mkstemp(dir=target_dir, prefix=candidate.name + \".\", suffix=\".part\")"
   replace: "            part_name = str(candidate) + \".part\"\n            fd = os.open(part_name, os.O_CREAT | os.O_WRONLY | os.O_TRUNC)"
   test: tests.test_fetch_core.CopierTests.test_an_existing_part_file_of_the_user_is_never_deleted_or_overwritten
+- label: without hard links the final file is created with replacement
+  find: "    with open(final, \"xb\") as writer:"
+  replace: "    with open(final, \"wb+\") as writer:"
+  test: tests.test_fetch_core.CopierTests.test_without_hard_links_the_final_name_is_still_never_replaced

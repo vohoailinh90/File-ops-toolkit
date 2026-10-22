@@ -23,7 +23,7 @@ mutations:
   replace: "    if False:\n        raise ValueError"
   test: tests.test_fetch_core.RunnerTests.test_job_run_reports_progress_and_final_state
 - label: a destination inside a source folder is accepted
-  find: "            if current in sources:"
+  find: "            if _key(current) in sources:"
   replace: "            if False:"
   test: tests.test_fetch_core.RunnerTests.test_a_destination_inside_or_equal_to_a_source_folder_is_refused_before_anything_is_written
 - label: the final result list is re-ordered under a poller
@@ -35,6 +35,18 @@ mutations:
   replace: "    if False:\n"
   test: tests.test_fetch_core.RunnerTests.test_the_by_folder_layout_cannot_aim_a_copy_at_a_source_folder
 - label: symlinks and junctions are not resolved before comparing
-  find: "    return os.path.normcase(os.path.realpath(path)).rstrip(\"\\\\/\")"
-  replace: "    return os.path.normcase(os.path.abspath(path)).rstrip(\"\\\\/\")"
+  find: "    return _key(os.path.normcase(os.path.realpath(path)))"
+  replace: "    return _key(os.path.normcase(os.path.abspath(path)))"
   test: tests.test_fetch_core.RunnerTests.test_a_destination_reached_through_a_symlink_into_a_source_is_refused
+- label: a root folder loses its separator and matches nothing
+  find: "    return drive + (stripped or pathmod.sep)"
+  replace: "    return drive + stripped"
+  test: tests.test_fetch_core.RunnerTests.test_roots_and_unc_shares_have_one_spelling_in_windows_form
+- label: an unreadable sub-folder is not reported
+  find: "    if index.unreadable:  # a sub-folder could not be opened: other matches, or this file, may be inside it"
+  replace: "    if False:  # a sub-folder could not be opened: other matches, or this file, may be inside it"
+  test: tests.test_fetch_core.RunnerTests.test_an_unreadable_subfolder_is_reported_instead_of_hidden
+- label: a search that found nothing in a partly unreadable folder still says not found
+  find: "    elif result.warning:\n        result.status = \"scan_incomplete\""
+  replace: "    elif False:\n        result.status = \"scan_incomplete\""
+  test: tests.test_fetch_core.RunnerTests.test_an_unreadable_subfolder_is_reported_instead_of_hidden

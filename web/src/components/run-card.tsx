@@ -39,9 +39,9 @@ export function RunCard({
   const [filter, setFilter] = React.useState("all")
   const [shown, setShown] = React.useState(PAGE)
   const running = view.state === "running"
-  const problems = view.results.filter((r) => isProblem(r.status)).length
+  const problems = view.results.filter((r) => isProblem(r)).length
   const rows = React.useMemo(
-    () => (filter === "problems" ? view.results.filter((r) => isProblem(r.status)) : view.results),
+    () => (filter === "problems" ? view.results.filter((r) => isProblem(r)) : view.results),
     [filter, view.results],
   )
   const percent = view.total ? Math.round((view.done / view.total) * 100) : 0
@@ -135,6 +135,9 @@ export function RunCard({
                       <TableCell className="whitespace-normal">
                         <StatusBadge tone={toneOf(row.status)}>{t(`status.${row.status}`)}</StatusBadge>
                         {row.detail && <div className="mt-1 text-xs text-muted-foreground">{row.detail}</div>}
+                        {row.warning && (
+                          <div className="mt-1 text-xs text-muted-foreground">{t(`warnings.${row.warning}`)}</div>
+                        )}
                       </TableCell>
                       <TableCell className="whitespace-normal text-xs break-all">
                         {row.files.map((file) => (

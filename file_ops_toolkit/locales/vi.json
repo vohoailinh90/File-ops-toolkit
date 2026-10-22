@@ -94,7 +94,8 @@
     "invalid_name": "Tên file không hợp lệ",
     "unsupported_link": "Chưa hỗ trợ liên kết web",
     "error": "Sao chép lỗi",
-    "invalid_address": "Không phải đường dẫn thư mục"
+    "invalid_address": "Không phải đường dẫn thư mục",
+    "scan_incomplete": "Một số thư mục không tìm được"
   },
   "errors": {
     "unreadable_workbook": "Không đọc được file này như một workbook .xlsx.",
@@ -135,5 +136,8 @@
     "report_help": "Ghi báo cáo CSV vào đường dẫn này",
     "summary_one": "Đã sao chép {count} file. Số dòng: {rows}. Cần xem lại: {problems}.",
     "summary_other": "Đã sao chép {count} file. Số dòng: {rows}. Cần xem lại: {problems}."
+  },
+  "warnings": {
+    "scan_incomplete": "Một số thư mục con không mở được, nên có thể còn file khớp tên ở đó."
   }
 }

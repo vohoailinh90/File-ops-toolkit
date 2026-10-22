@@ -72,16 +72,35 @@ def _same_file(source: Path, candidate: Path, src_stat: os.stat_result) -> bool:
 
 
 def _publish(part: Path, final: Path) -> None:
-    """Move `part` to `final` only if `final` does not exist (os.replace would silently overwrite on POSIX)."""
+    """Give `part` its final name, failing with FileExistsError if `final` exists, with no window to overwrite it.
+
+    A hard link is atomic and never replaces. Where the filesystem has none, Windows' rename refuses an
+    existing target; elsewhere the final file is created exclusively (`xb`) and filled from `part`, which is
+    the one way left that cannot replace a file another process created in the meantime.
+    """
     try:
         os.link(part, final)
     except FileExistsError:
         raise
     except OSError:  # a filesystem without hard links
-        if final.exists():
-            raise FileExistsError(str(final))
-        os.replace(part, final)
+        if os.name == "nt":
+            os.rename(part, final)  # raises FileExistsError when `final` exists
+            return
+        _fill_exclusively(part, final)
         return
+    os.unlink(part)
+
+
+def _fill_exclusively(part: Path, final: Path) -> None:
+    with open(final, "xb") as writer:  # ours from here on: a failure below removes it again
+        try:
+            with open(part, "rb") as reader:
+                shutil.copyfileobj(reader, writer, length=1024 * 1024)
+            shutil.copystat(part, final)
+        except BaseException:
+            writer.close()
+            _discard(final)
+            raise
     os.unlink(part)
 
 

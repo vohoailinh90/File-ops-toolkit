@@ -8,11 +8,14 @@ export function toneOf(status: string): StatusTone {
     case "already_copied":
       return "info"
     case "not_found":
+    case "scan_incomplete":
       return "warning"
     default:
       return "failed"
   }
 }
 
-export const PROBLEM_STATUSES = new Set(["copied", "already_copied"])
-export const isProblem = (status: string) => !PROBLEM_STATUSES.has(status)
+const OK_STATUSES = new Set(["copied", "already_copied"])
+// A row needs attention when it did not copy, or copied from a search that could not look everywhere.
+export const isProblem = (result: { status: string; warning: string }) =>
+  !OK_STATUSES.has(result.status) || result.warning !== ""

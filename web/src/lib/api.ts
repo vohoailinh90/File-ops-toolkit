@@ -11,6 +11,7 @@ export type RowResult = {
   status: string
   files: FileResult[]
   detail: string
+  warning: string
 }
 export type RunState = "idle" | "running" | "done" | "cancelled" | "failed"
 export type Status = {

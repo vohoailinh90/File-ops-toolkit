@@ -68,7 +68,7 @@ def _run(args: argparse.Namespace, tr: Translator) -> int:
         print(tr.t("errors." + exc.code), file=sys.stderr)
         return 2
     copied = sum(1 for r in results for f in r.files if f.outcome == "copied")
-    problems = sum(1 for r in results if r.status not in ("copied", "already_copied"))
+    problems = sum(1 for r in results if r.status not in ("copied", "already_copied") or r.warning)
     print(tr.t("cli.summary", count=copied, rows=len(results), problems=problems))
     if args.report:
         Path(args.report).write_bytes(report_csv(results, tr))

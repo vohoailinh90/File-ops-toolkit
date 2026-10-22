@@ -1,4 +1,5 @@
 import io
+import ntpath
 import os
 import threading
 import unittest
@@ -8,11 +9,11 @@ from unittest import mock
 
 from openpyxl import Workbook
 
-from file_ops_toolkit.copier import copy_without_overwrite
+from file_ops_toolkit.copier import _publish, copy_without_overwrite
 from file_ops_toolkit.excel import ExcelError, JobRow, read_jobs
 from file_ops_toolkit.finder import FolderError, find_matches, scan_folder
 from file_ops_toolkit.paths import AddressError, clean_file_name, looks_like_path, normalize_address, safe_dir_name
-from file_ops_toolkit.runner import DestinationError, JobRun, Options, run_job
+from file_ops_toolkit.runner import _key, DestinationError, JobRun, Options, run_job
 
 
 def touch(path: Path, content: str = "x", mtime: int | None = None) -> Path:
@@ -217,6 +218,18 @@ class CopierTests(unittest.TestCase):
         self.assertEqual(Path(out.dest).read_text(), "new")
         self.assertEqual(sorted(p.name for p in (self.root / "dest").iterdir()), ["report.txt", "report.txt.part"])
 
+    def test_without_hard_links_the_final_name_is_still_never_replaced(self):
+        part = touch(self.root / "dest" / "a.txt.part", "new")
+        final = touch(self.root / "dest" / "a.txt", "someone else's file")
+        with mock.patch("file_ops_toolkit.copier.os.link", side_effect=OSError("no hard links here")):
+            with self.assertRaises(FileExistsError):
+                _publish(part, final)
+            self.assertEqual(final.read_text(), "someone else's file")
+            final.unlink()
+            _publish(part, final)
+        self.assertEqual(final.read_text(), "new")
+        self.assertFalse(part.exists())
+
     def test_a_failed_copy_leaves_no_partial_file(self):
         src = touch(self.root / "src" / "a.txt", "hello")
         with mock.patch("file_ops_toolkit.copier.shutil.copyfileobj", side_effect=OSError("disk full")):
@@ -297,6 +310,35 @@ class RunnerTests(unittest.TestCase):
             with self.subTest(dest=dest), self.assertRaises(DestinationError):
                 run_job(self.jobs()[:1], dest)
         self.assertEqual(sorted(p.name for p in self.a.iterdir()), ["deep", "report_0501.xlsx"])
+
+    def test_roots_and_unc_shares_have_one_spelling_in_windows_form(self):
+        key = lambda path: _key(path, ntpath)  # noqa: E731 - the Windows spelling, checkable on any system
+        self.assertEqual(key("D:\\"), "D:\\")
+        self.assertEqual(key("D:\\reports\\"), "D:\\reports")
+        self.assertEqual(key("\\\\srv\\share"), key("\\\\srv\\share\\"))
+        self.assertEqual(key("\\\\srv\\share\\a\\"), "\\\\srv\\share\\a")
+
+    def test_a_filesystem_root_as_a_source_contains_every_destination(self):
+        root = JobRow(2, os.path.abspath(os.sep), "x.txt")
+        with self.assertRaises(DestinationError) as ctx:
+            run_job([root], self.dest)
+        self.assertEqual(ctx.exception.code, "dest_inside_source")
+
+    def test_an_unreadable_subfolder_is_reported_instead_of_hidden(self):
+        touch(self.a / "locked" / "report_0501.xlsx", "hidden")
+        real = os.scandir
+
+        def scandir(path):
+            if str(path).endswith("locked"):
+                raise PermissionError(13, "Access is denied")
+            return real(path)
+
+        rows = [JobRow(2, str(self.a), "report_0501.xlsx"), JobRow(3, str(self.b), "report_0128.pdf"),
+                JobRow(4, str(self.a), "nope.xlsx")]
+        with mock.patch("file_ops_toolkit.finder.os.scandir", scandir):
+            results = run_job(rows, self.dest)
+        self.assertEqual([(r.status, r.warning) for r in results],
+                         [("copied", "scan_incomplete"), ("copied", ""), ("scan_incomplete", "scan_incomplete")])
 
     def test_sources_are_never_modified(self):
         before = {p: p.read_text() for p in (self.root / "srv").rglob("*") if p.is_file()}

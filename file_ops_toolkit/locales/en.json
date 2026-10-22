@@ -94,7 +94,8 @@
     "invalid_name": "Invalid file name",
     "unsupported_link": "Web links are not supported",
     "error": "Copy failed",
-    "invalid_address": "Not a folder path"
+    "invalid_address": "Not a folder path",
+    "scan_incomplete": "Some folders could not be searched"
   },
   "errors": {
     "unreadable_workbook": "This file cannot be read as an .xlsx workbook.",
@@ -135,5 +136,8 @@
     "report_help": "Write a CSV report to this path",
     "summary_one": "Copied {count} file. Rows: {rows}. Need attention: {problems}.",
     "summary_other": "Copied {count} files. Rows: {rows}. Need attention: {problems}."
+  },
+  "warnings": {
+    "scan_incomplete": "Some sub-folders could not be opened, so other matching files may exist there."
   }
 }

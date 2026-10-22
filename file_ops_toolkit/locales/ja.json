@@ -94,7 +94,8 @@
     "invalid_name": "ファイル名が正しくありません",
     "unsupported_link": "Webリンクには対応していません",
     "error": "コピーに失敗しました",
-    "invalid_address": "フォルダーのパスではありません"
+    "invalid_address": "フォルダーのパスではありません",
+    "scan_incomplete": "一部のフォルダーを検索できませんでした"
   },
   "errors": {
     "unreadable_workbook": "このファイルは.xlsxブックとして読み込めません。",
@@ -135,5 +136,8 @@
     "report_help": "このパスにCSVレポートを書き出す",
     "summary_one": "{count}個のファイルをコピーしました。行数：{rows}、要確認：{problems}。",
     "summary_other": "{count}個のファイルをコピーしました。行数：{rows}、要確認：{problems}。"
+  },
+  "warnings": {
+    "scan_incomplete": "一部のサブフォルダーを開けなかったため、ほかに該当するファイルがある可能性があります。"
   }
 }

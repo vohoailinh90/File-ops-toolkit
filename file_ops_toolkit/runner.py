@@ -39,6 +39,7 @@ class RowResult:
     status: str  # a catalog key under `status`
     files: list[FileResult] = field(default_factory=list)
     detail: str = ""
+    warning: str = ""  # a catalog key under `warnings`: the row ran, but its result may be incomplete
 
     def as_dict(self) -> dict:
         return asdict(self)
@@ -68,7 +69,7 @@ def check_destination(rows: list[JobRow], dest: str, layout: str = "flat") -> No
     for target in targets:
         current = target
         while True:  # the target itself, then each parent: a source anywhere on the way makes it inside
-            if current in sources:
+            if _key(current) in sources:
                 raise DestinationError("dest_inside_source")
             parent = os.path.dirname(current)
             if parent == current:
@@ -82,7 +83,14 @@ def _by_folder_name(address: str) -> str:
 
 def _comparable(path: str) -> str:
     """A path in one spelling: absolute, aliases resolved (also below folders that do not exist yet), no case."""
-    return os.path.normcase(os.path.realpath(path)).rstrip("\\/")
+    return _key(os.path.normcase(os.path.realpath(path)))
+
+
+def _key(path: str, pathmod=os.path) -> str:
+    """One spelling per folder: no trailing separator, except that a root (`/`, `D:\\`, `\\\\srv\\share`) keeps one."""
+    drive, tail = pathmod.splitdrive(path)
+    stripped = tail.rstrip("\\/")
+    return drive + (stripped or pathmod.sep)
 
 
 def run_job(rows: list[JobRow], dest: str, options: Options = Options(),
@@ -135,6 +143,8 @@ def _run_folder(group: list[JobRow], dest: str, options: Options,
 def _run_row(job: JobRow, index, target: str) -> RowResult:
     matches = find_matches(index, job.file_name)
     result = RowResult(job.row, job.address, job.file_name, "not_found")
+    if index.unreadable:  # a sub-folder could not be opened: other matches, or this file, may be inside it
+        result.warning = "scan_incomplete"
     for source in matches:
         try:
             outcome = copy_without_overwrite(source, target)
@@ -148,6 +158,8 @@ def _run_row(job: JobRow, index, target: str) -> RowResult:
         result.status = "copied"
     elif result.files:
         result.status = "already_copied"
+    elif result.warning:
+        result.status = "scan_incomplete"  # nothing found, but not everything could be searched
     return result
 
 

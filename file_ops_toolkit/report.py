@@ -22,5 +22,5 @@ def report_csv(results: list[RowResult], tr: Translator) -> bytes:
     for r in results:
         files = "; ".join(f.dest or f.source for f in r.files)
         writer.writerow([r.row, _safe(r.address), _safe(r.file_name), tr.t(f"status.{r.status}"), _safe(files),
-                         _safe(r.detail)])
+                         _safe(r.detail or (tr.t(f"warnings.{r.warning}") if r.warning else ""))])
     return out.getvalue().encode("utf-8-sig")
