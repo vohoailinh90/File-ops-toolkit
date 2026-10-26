@@ -25,7 +25,7 @@ và sao chép toàn bộ về một thư mục do bạn chọn. Giao diện web 
 - Vì khớp theo "chứa", tên quá ngắn hoặc quá chung sẽ lấy nhiều file ngoài ý muốn (`0005` cũng khớp `10005.pdf`):
   hãy nhập tên đủ dài để chỉ ra đúng báo cáo.
 - Cột A phải là đường dẫn tuyệt đối (UNC, ổ đĩa, `file:`); chữ thường hoặc đường dẫn tương đối bị báo "Không phải đường dẫn thư mục".
-- Mặc định tìm cả trong thư mục con; mọi file trùng tên đều được lấy.
+- Mặc định tìm cả trong thư mục con; mọi file có tên chứa tên ở cột B đều được lấy.
 
 ## Chạy
 
