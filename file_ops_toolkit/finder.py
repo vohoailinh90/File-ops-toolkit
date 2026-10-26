@@ -1,4 +1,4 @@
-"""Find the files a folder holds under a given name. Reads only; nothing here writes."""
+"""Find the files a folder holds whose name contains a given name. Reads only; nothing here writes."""
 
 from __future__ import annotations
 
@@ -30,8 +30,7 @@ def fold(name: str) -> str:
 @dataclass
 class FolderIndex:
     root: str
-    by_name: dict[str, list[str]] = field(default_factory=dict)
-    by_stem: dict[str, list[str]] = field(default_factory=dict)
+    files: list[tuple[str, str, str]] = field(default_factory=list)  # (folded stem, folded extension, path)
     unreadable: list[str] = field(default_factory=list)  # sub-folders that could not be opened
 
 
@@ -56,8 +55,7 @@ def scan_folder(root: str, recursive: bool = True, cancel: threading.Event | Non
                 raise FolderError("folder_unreadable") from exc
             index.unreadable.append(folder)
         first = False
-    for paths in list(index.by_name.values()) + list(index.by_stem.values()):
-        paths.sort()
+    index.files.sort(key=lambda entry: entry[2])
     return index
 
 
@@ -77,20 +75,32 @@ def _scan_dir(folder: str, index: FolderIndex, pending: list[str], recursive: bo
                 index.unreadable.append(entry.path)
 
 
+def split_name(name: str) -> tuple[str, str]:
+    """A file name as (stem, extension). A trailing ".2" (of "Report_v1.2") is part of the stem, not an extension."""
+    stem, extension = os.path.splitext(name)
+    if _EXTENSION.fullmatch(extension):
+        return stem, extension
+    return name, ""
+
+
 def _add(index: FolderIndex, name: str, path: str) -> None:
-    index.by_name.setdefault(fold(name), []).append(path)
-    stem = os.path.splitext(name)[0]
-    if stem and stem != name:
-        index.by_stem.setdefault(fold(stem), []).append(path)
+    stem, extension = split_name(name)
+    index.files.append((fold(stem), fold(extension), path))
 
 
 def find_matches(index: FolderIndex, name: str) -> list[str]:
-    """Every file named `name`; when none is, every file whose name without extension is `name`."""
-    key = fold(name)
-    found = index.by_name.get(key)
-    if not found and not _EXTENSION.fullmatch(os.path.splitext(name)[1]):
-        found = index.by_stem.get(key)  # "Report_0128" finds Report_0128.pdf; "report.pdf" never finds report.pdf.bak
-    return list(found or [])
+    """Every file whose name contains `name`, so "Report_0128" finds Report_0128_ProjectX.pdf.
+
+    The test is a plain, case-insensitive substring test on the file's own name (never a wildcard or a path).
+    A name with an extension ("Report_0128.pdf") also needs that same extension, so it finds
+    "Report_0128_ProjectX.pdf" but never "Report_0128.pdf.bak"; a name without one matches any extension.
+    """
+    stem, extension = split_name(name)
+    needle, wanted = fold(stem), fold(extension)
+    if not needle:
+        return []  # an empty name would be "contained" by every file
+    return [path for file_stem, file_extension, path in index.files
+            if needle in file_stem and (not wanted or file_extension == wanted)]
 
 
 def display_name(path: str) -> str:

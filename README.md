@@ -16,11 +16,16 @@ và sao chép toàn bộ về một thư mục do bạn chọn. Giao diện web 
 - Dòng 1 là tiêu đề; dữ liệu từ dòng 2. Dòng trống bị bỏ qua.
 - Cột A có thể là chữ đường dẫn UNC / ổ đĩa, ô có hyperlink (`file://...`), hoặc công thức `=HYPERLINK(...)`.
   Nếu ô hiển thị chữ thân thiện (vd "Mở thư mục"), tool dùng địa chỉ của hyperlink.
-- Cột B là tên file. Không phân biệt hoa thường. Nếu **không có đuôi file** (vd `Report_0128`) thì khớp với
-  file cùng tên ở mọi đuôi (`Report_0128.pdf`, `Report_0128.xlsx`…), nhưng chỉ khi không có file trùng đúng tên.
-  Tên có đuôi (`report.pdf`) chỉ khớp đúng tên đó. Ô số định dạng `0000` được hiểu là `0005`, không phải `5`.
+- Cột B là tên file. Không phân biệt hoa thường. Tool lấy **mọi file có tên chứa** chữ trong ô B, nên báo cáo bị ghi
+  thêm tên dự án vẫn tìm được: `Report_0128` tìm được `Report_0128.pdf`, `Report_0128_TenDuAn.pdf` và
+  `TenDuAn_Report_0128.xlsx`. Chỉ tên file được so, không so tên thư mục. Phần đuôi không bị tìm trong tên:
+  nếu ô B **không có đuôi file** (vd `Report_0128`) thì khớp mọi đuôi; nếu **có đuôi** (vd `Report_0501.xlsx`) thì
+  file phải có đúng đuôi đó (`Report_0501_TenDuAn.xlsx` khớp, `Report_0501.xlsx.bak` không khớp).
+  Ô số định dạng `0000` được hiểu là `0005`, không phải `5`.
+- Vì khớp theo "chứa", tên quá ngắn hoặc quá chung sẽ lấy nhiều file ngoài ý muốn (`0005` cũng khớp `10005.pdf`):
+  hãy nhập tên đủ dài để chỉ ra đúng báo cáo.
 - Cột A phải là đường dẫn tuyệt đối (UNC, ổ đĩa, `file:`); chữ thường hoặc đường dẫn tương đối bị báo "Không phải đường dẫn thư mục".
-- Mặc định tìm cả trong thư mục con; mọi file trùng tên đều được lấy.
+- Mặc định tìm cả trong thư mục con; mọi file có tên chứa tên ở cột B đều được lấy.
 
 ## Chạy
 

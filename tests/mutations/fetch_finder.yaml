@@ -6,14 +6,34 @@ mutations:
   find: "    return unicodedata.normalize(\"NFC\", name).casefold()"
   replace: "    return unicodedata.normalize(\"NFC\", name)"
   test: tests.test_fetch_core.FinderTests.test_exact_name_matches_without_case_and_recurses
-- label: a name without extension never matches by stem
-  find: "        found = index.by_stem.get(key)"
-  replace: "        found = []"
-  test: tests.test_fetch_core.FinderTests.test_name_without_extension_matches_any_extension_only_when_no_exact_file
-- label: the stem is added to the exact matches instead of replacing them as a fallback
-  find: "    if not found and not _EXTENSION.fullmatch(os.path.splitext(name)[1]):"
-  replace: "    if not _EXTENSION.fullmatch(os.path.splitext(name)[1]):"
-  test: tests.test_fetch_core.FinderTests.test_name_without_extension_matches_any_extension_only_when_no_exact_file
+- label: composed and decomposed Unicode are different names
+  find: "    return unicodedata.normalize(\"NFC\", name).casefold()"
+  replace: "    return name.casefold()"
+  test: tests.test_fetch_core.FinderTests.test_composed_and_decomposed_unicode_are_the_same_name
+- label: a name is only found as the whole file name, not inside a longer one
+  find: "            if needle in file_stem and (not wanted or file_extension == wanted)]"
+  replace: "            if needle == file_stem  and (not wanted or file_extension == wanted)]"
+  test: tests.test_fetch_core.FinderTests.test_a_name_is_found_inside_a_longer_name
+- label: a name with an extension matches files of any extension
+  find: "            if needle in file_stem and (not wanted or file_extension == wanted)]"
+  replace: "            if needle in file_stem and True]"
+  test: tests.test_fetch_core.FinderTests.test_a_name_with_an_extension_never_matches_another_extension
+- label: a name without an extension only matches files without one
+  find: "            if needle in file_stem and (not wanted or file_extension == wanted)]"
+  replace: "            if needle in file_stem and (file_extension == wanted)]"
+  test: tests.test_fetch_core.FinderTests.test_name_without_extension_matches_any_extension
+- label: a dotted version number counts as an extension
+  find: "    if _EXTENSION.fullmatch(extension):"
+  replace: "    if extension:"
+  test: tests.test_fetch_core.FinderTests.test_dotted_name_is_not_mistaken_for_an_extension
+- label: the extension is searched as part of the name
+  find: "    index.files.append((fold(stem), fold(extension), path))"
+  replace: "    index.files.append((fold(stem + extension), fold(extension), path))"
+  test: tests.test_fetch_core.FinderTests.test_the_extension_is_not_searched_as_part_of_a_name
+- label: an empty name matches every file
+  find: "    if not needle:"
+  replace: "    if False:"
+  test: tests.test_fetch_core.FinderTests.test_an_empty_name_matches_nothing
 - label: sub-folders are always searched
   find: "                    if recursive:"
   replace: "                    if True:"
@@ -26,7 +46,3 @@ mutations:
   find: "            raise FolderError(\"folder_missing\" if not os.path.exists(root) else \"folder_not_a_directory\")"
   replace: "            raise FolderError(\"folder_not_a_directory\")"
   test: tests.test_fetch_core.FinderTests.test_missing_folder_and_file_in_place_of_folder
-- label: a name with an extension falls back to the stem
-  find: "    if not found and not _EXTENSION.fullmatch(os.path.splitext(name)[1]):"
-  replace: "    if not found:"
-  test: tests.test_fetch_core.FinderTests.test_a_name_with_an_extension_never_matches_a_longer_name
