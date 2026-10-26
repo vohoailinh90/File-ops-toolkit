@@ -6,8 +6,9 @@ server folders to a folder the user picks.
 - Input: an `.xlsx`; row 1 is the header; from row 2, **column A** is the folder (a UNC share such
   as `\\server\share\...`, a drive path, or a `file:` link — text, hyperlink or `=HYPERLINK()`),
   **column B** is the file name.
-- For each row the tool opens the folder (sub-folders too, unless turned off), finds every file with
-  that name (a name without extension matches any extension) and copies all of them to the destination.
+- For each row the tool opens the folder (sub-folders too, unless turned off), finds every file whose
+  name contains that name, ignoring case (a name with an extension needs that same extension; a name
+  without one matches any extension), and copies all of them to the destination.
 - Runs on the user's Windows PC, because that is where the share is reachable. `python app.py` opens the UI;
   `python app.py run LIST.xlsx DEST` runs without it.
 
@@ -20,8 +21,10 @@ These are product invariants. Changing one is a T3 change that needs the owner's
   the share it reads.
 - **Never overwrite a file in the destination.** An identical earlier copy is reported; a different file
   with the same name gets ` (2)`, ` (3)`… (`copier.py`).
-- **Column B is untrusted.** A name with a path separator is rejected; matching is by string equality,
-  never by wildcard or path join.
+- **Column B is untrusted.** A name with a path separator is rejected; matching is a plain, case-insensitive
+  substring test on a file's own name (`finder.find_matches`), never a wildcard, a regex or a path join.
+  (Amended 2026-10-26 at the owner's request, from exact equality: reports carry a project name in their
+  file name and an exact match missed them.)
 - **The local API can write to disk**: it binds to 127.0.0.1 only, needs the per-launch token and checks
   the Host header (`server.py`). Do not add CORS, a public bind or an unauthenticated endpoint.
 - Web links (SharePoint, Google Drive) are not supported; such a row gets the status
