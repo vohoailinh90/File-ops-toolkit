@@ -3,6 +3,7 @@ import ntpath
 import os
 import stat
 import threading
+import unicodedata
 import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -143,19 +144,45 @@ class FinderTests(unittest.TestCase):
         index = scan_folder(str(self.root))
         self.assertEqual(len(find_matches(index, "report_0501.xlsx")), 2)
 
-    def test_name_without_extension_matches_any_extension_only_when_no_exact_file(self):
+    def test_name_without_extension_matches_any_extension(self):
         touch(self.root / "Report_0501.xlsx")
         touch(self.root / "Report_0501.pdf")
+        touch(self.root / "Report_0501")  # an exact file does not hide the others: every file containing the name is taken
         index = scan_folder(str(self.root))
         self.assertEqual(sorted(Path(p).name for p in find_matches(index, "Report_0501")),
-                         ["Report_0501.pdf", "Report_0501.xlsx"])
-        touch(self.root / "Report_0501")  # now an exact file exists, the stem fallback is not used
-        index = scan_folder(str(self.root))
-        self.assertEqual([Path(p).name for p in find_matches(index, "Report_0501")], ["Report_0501"])
+                         ["Report_0501", "Report_0501.pdf", "Report_0501.xlsx"])
 
-    def test_dotted_name_still_falls_back_to_stem(self):
+    def test_a_name_is_found_inside_a_longer_name(self):
+        for name in ("Report_0501_ProjectX.xlsx", "ProjectX_report_0501.xlsx", "REPORT_0501.XLSX", "Report_0502.xlsx"):
+            touch(self.root / name)
+        touch(self.root / "Report_0501_ProjectX.pdf")
+        index = scan_folder(str(self.root))
+        self.assertEqual(sorted(Path(p).name for p in find_matches(index, "Report_0501.xlsx")),
+                         ["ProjectX_report_0501.xlsx", "REPORT_0501.XLSX", "Report_0501_ProjectX.xlsx"])
+        self.assertEqual(sorted(Path(p).name for p in find_matches(index, "Report_0501")),
+                         ["ProjectX_report_0501.xlsx", "REPORT_0501.XLSX", "Report_0501_ProjectX.pdf", "Report_0501_ProjectX.xlsx"])
+
+    def test_the_extension_is_not_searched_as_part_of_a_name(self):
+        touch(self.root / "scan.pdf")
+        touch(self.root / "pdf_notes.txt")
+        self.assertEqual([Path(p).name for p in find_matches(scan_folder(str(self.root)), "pdf")], ["pdf_notes.txt"])
+
+    def test_only_the_file_name_is_searched_not_the_folders_above_it(self):
+        touch(self.root / "Report_0501" / "other.txt")
+        self.assertEqual(find_matches(scan_folder(str(self.root)), "Report_0501"), [])
+
+    def test_an_empty_name_matches_nothing(self):
+        touch(self.root / "a.txt")
+        self.assertEqual(find_matches(scan_folder(str(self.root)), ""), [])
+
+    def test_composed_and_decomposed_unicode_are_the_same_name(self):
+        touch(self.root / unicodedata.normalize("NFD", "Báo_cáo_0501_DựÁn.pdf"))
+        self.assertEqual(len(find_matches(scan_folder(str(self.root)), unicodedata.normalize("NFC", "Báo_cáo_0501"))), 1)
+
+    def test_dotted_name_is_not_mistaken_for_an_extension(self):
         touch(self.root / "Report_v1.2.xlsx")
-        self.assertEqual(len(find_matches(scan_folder(str(self.root)), "Report_v1.2")), 1)
+        touch(self.root / "Report_v1.2_ProjectX.xlsx")
+        self.assertEqual(len(find_matches(scan_folder(str(self.root)), "Report_v1.2")), 2)
 
     def test_non_recursive_and_lock_files(self):
         touch(self.root / "a.txt")
@@ -165,7 +192,7 @@ class FinderTests(unittest.TestCase):
         self.assertEqual(len(find_matches(scan_folder(str(self.root)), "a.txt")), 2)
         self.assertEqual(find_matches(scan_folder(str(self.root)), "~$a.txt"), [])
 
-    def test_a_name_with_an_extension_never_matches_a_longer_name(self):
+    def test_a_name_with_an_extension_never_matches_another_extension(self):
         touch(self.root / "report.pdf.bak")
         touch(self.root / "report.pdf")
         self.assertEqual([Path(p).name for p in find_matches(scan_folder(str(self.root)), "report.pdf")], ["report.pdf"])
@@ -333,6 +360,15 @@ class RunnerTests(unittest.TestCase):
         self.assertEqual(len(results[0].files), 2)
         names = sorted(p.name for p in Path(self.dest).iterdir())
         self.assertEqual(names, ["report_0128.pdf", "report_0501 (2).xlsx", "report_0501.xlsx"])
+
+    def test_a_row_finds_files_whose_name_has_a_project_name_added(self):
+        folder = self.root / "srv" / "19QMC_0099"
+        touch(folder / "Report_0777_ProjectX.pdf", "p1")
+        touch(folder / "Report_0778.pdf", "p2")
+        results = run_job([JobRow(2, str(folder), "Report_0777")], self.dest)
+        self.assertEqual([(r.status, [Path(f.source).name for f in r.files]) for r in results],
+                         [("copied", ["Report_0777_ProjectX.pdf"])])
+        self.assertEqual([p.name for p in Path(self.dest).iterdir()], ["Report_0777_ProjectX.pdf"])
 
     def test_second_run_over_the_same_list_changes_nothing(self):
         run_job(self.jobs(), self.dest)
