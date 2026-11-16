@@ -34,5 +34,9 @@ __pycache__/
 web/node_modules/
 web/dist/
 
+# Windows exe build (scripts/build_exe.bat)
+/build/
+/dist/
+
 # Runs and secrets
 *.local
