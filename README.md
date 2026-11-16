@@ -42,6 +42,19 @@ python app.py run list.xlsx D:\fetched --report report.csv   # không cần giao
 Trong giao diện: chọn file Excel → chọn thư mục đích (gõ đường dẫn hoặc "Duyệt…") → **Bắt đầu**. Kết quả từng
 dòng hiện theo thời gian thực và có thể xuất CSV.
 
+## Tạo file exe (Windows)
+
+Cần Python 3.10+ và Node.js 22+. Chạy trên máy Windows (PyInstaller không build chéo từ Linux/macOS):
+
+```bat
+scripts\build_exe.bat
+```
+
+Script cài PyInstaller, dựng giao diện web rồi đóng gói thành `dist\FileOpsToolkit.exe`. Bấm đúp để mở giao diện;
+chạy không giao diện bằng `dist\FileOpsToolkit.exe run list.xlsx D:\fetched`. Nếu exe khởi động chậm hoặc antivirus
+báo nhầm, dùng `scripts\build_exe.bat onedir` để ra thư mục `dist\FileOpsToolkit\` (copy cả thư mục).
+Exe chưa ký số nên Windows SmartScreen có thể cảnh báo lần đầu.
+
 ## An toàn dữ liệu
 
 - Chỉ **đọc** từ server: không sửa, không xóa, không di chuyển gì ở nguồn.
