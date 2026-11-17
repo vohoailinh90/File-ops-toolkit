@@ -35,8 +35,8 @@ mutations:
   replace: "    if False:\n"
   test: tests.test_fetch_core.RunnerTests.test_the_by_folder_layout_cannot_aim_a_copy_at_a_source_folder
 - label: symlinks and junctions are not resolved before comparing
-  find: "    return _key(os.path.normcase(os.path.realpath(path)))"
-  replace: "    return _key(os.path.normcase(os.path.abspath(path)))"
+  find: "        resolved = os.path.realpath(path)\n"
+  replace: "        resolved = os.path.abspath(path)\n"
   test: tests.test_fetch_core.RunnerTests.test_a_destination_reached_through_a_symlink_into_a_source_is_refused
 - label: a root folder loses its separator and matches nothing
   find: "    return drive + (stripped or pathmod.sep)"
@@ -54,3 +54,7 @@ mutations:
   find: "            runnable.setdefault(_key(os.path.normcase(job.address)), []).append(job)"
   replace: "            runnable.setdefault(str(job.address).casefold(), []).append(job)"
   test: tests.test_fetch_core.RunnerTests.test_folders_whose_names_differ_only_by_case_are_not_merged_when_the_filesystem_keeps_them_apart
+- label: a path Windows refuses to resolve fails the Start request instead of being compared as written
+  find: "    except OSError:\n        resolved = os.path.abspath(path)\n"
+  replace: "    except ArithmeticError:\n        resolved = os.path.abspath(path)\n"
+  test: tests.test_fetch_core.RunnerTests.test_a_path_windows_refuses_to_resolve_is_compared_as_written_instead_of_failing

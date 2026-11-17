@@ -14,7 +14,7 @@ from file_ops_toolkit.copier import _publish, copy_without_overwrite
 from file_ops_toolkit.excel import ExcelError, JobRow, read_jobs
 from file_ops_toolkit.finder import FolderError, find_matches, scan_folder
 from file_ops_toolkit.paths import AddressError, clean_file_name, looks_like_path, normalize_address, safe_dir_name
-from file_ops_toolkit.runner import _key, DestinationError, JobRun, Options, run_job
+from file_ops_toolkit.runner import _key, DestinationError, check_destination, JobRun, Options, run_job
 
 
 def touch(path: Path, content: str = "x", mtime: int | None = None) -> Path:
@@ -375,6 +375,20 @@ class RunnerTests(unittest.TestCase):
             with self.subTest(dest=dest), self.assertRaises(DestinationError):
                 run_job(self.jobs()[:1], dest)
         self.assertEqual(sorted(p.name for p in self.a.iterdir()), ["deep", "report_0501.xlsx"])
+
+    def test_a_path_windows_refuses_to_resolve_is_compared_as_written_instead_of_failing(self):
+        real = os.path.realpath
+        refused = {str(self.a), str(self.root / "out")}
+
+        def realpath(path, *args, **kwargs):  # WinError 224 from a WebDAV share outside the trusted sites
+            if str(path) in refused:
+                raise OSError(224, "Access Denied")
+            return real(path, *args, **kwargs)
+
+        with mock.patch("file_ops_toolkit.runner.os.path.realpath", side_effect=realpath):
+            check_destination(self.jobs()[:1], str(self.root / "out"))  # no OSError: the run can start
+            with self.assertRaises(DestinationError):  # and a destination written inside it is still refused
+                check_destination(self.jobs()[:1], str(self.a))
 
     def test_roots_and_unc_shares_have_one_spelling_in_windows_form(self):
         key = lambda path: _key(path, ntpath)  # noqa: E731 - the Windows spelling, checkable on any system

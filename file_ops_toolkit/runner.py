@@ -82,8 +82,17 @@ def _by_folder_name(address: str) -> str:
 
 
 def _comparable(path: str) -> str:
-    """A path in one spelling: absolute, aliases resolved (also below folders that do not exist yet), no case."""
-    return _key(os.path.normcase(os.path.realpath(path)))
+    """A path in one spelling: absolute, aliases resolved (also below folders that do not exist yet), no case.
+
+    Windows can refuse to resolve a path it cannot open at all (a SharePoint WebDAV share outside the trusted
+    sites raises WinError 224). `realpath` already falls back to the path as written for errors such as access
+    denied; the same fallback here keeps one unreachable row from failing the whole Start request.
+    """
+    try:
+        resolved = os.path.realpath(path)
+    except OSError:
+        resolved = os.path.abspath(path)
+    return _key(os.path.normcase(resolved))
 
 
 def _key(path: str, pathmod=os.path) -> str:
